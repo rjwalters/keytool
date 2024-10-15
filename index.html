@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Wallet Generator</h1>
+
+        <div class="controls">
+            <button id="new-128-bit-wallet-btn">New 128-bit Wallet</button>
+            <button id="new-256-bit-wallet-btn">New 256-bit Wallet</button>
+        </div>
+
+        <div id="wallet-container"></div>
+
+        <div id="shamir-controls">
+            <h3>Shamir's Secret Sharing</h3>
+            <div class="shamir-inputs">
+                <label for="minimum-shares">Minimum Shares:</label>
+                <input type="number" id="minimum-shares" min="2" value="2">
+                <label for="total-shares">Total Shares:</label>
+                <input type="number" id="total-shares" min="3" value="3">
+            </div>
+            <button id="generate-shares-btn">Generate Share Mnemonics</button>
+            <div id="shares-display" style="display: none;">
+                <h4>Generated Share Mnemonics:</h4>
+                <ul id="share-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js" type="module"></script>
+</body>
+</html>

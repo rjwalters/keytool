@@ -4,6 +4,7 @@
     "atoms/CheckBox",
     "atoms/Input",
     "atoms/RadioGroup",
+    "molecules/EntropyInput",
   ];
 </script>
 

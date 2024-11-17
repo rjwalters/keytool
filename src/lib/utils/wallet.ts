@@ -150,18 +150,35 @@ function createShares(
   minimum: number,
   shares: number,
 ): Share[] {
-  const secret = ethers.toBigInt(wallet.entropy);
+  // Remove '0x' prefix if present and convert to bigint
+  const entropyHex = wallet.entropy.startsWith('0x') 
+    ? wallet.entropy.slice(2) 
+    : wallet.entropy;
+  const secret = ethers.toBigInt('0x' + entropyHex);
   return makeRandomShares(secret, minimum, shares);
 }
 
 function recoverWalletFromShares(shares: Share[]): Wallet {
   const recoveredSecret = recoverSecret(shares);
-  const recoveredEntropy = ethers
-    .hexlify(recoveredSecret)
-    .slice(2)
-    .padStart(64, "0");
-  return walletFromEntropy(`0x${recoveredEntropy}`);
+  
+  // Convert bigint to hex string, removing leading zeros
+  const hexString = recoveredSecret.toString(16);
+  
+  // Ensure the hex string is exactly 64 characters (32 bytes) long
+  const paddedHexString = hexString.padStart(64, '0');
+  
+  // Add '0x' prefix
+  const recoveredEntropy = `0x${paddedHexString}`;
+  
+  try {
+    return walletFromEntropy(recoveredEntropy);
+  } catch (error) {
+    // If the first attempt fails, try removing any potential extra leading zeros
+    const trimmedHexString = recoveredSecret.toString(16).replace(/^0+/, '').padStart(64, '0');
+    return walletFromEntropy(`0x${trimmedHexString}`);
+  }
 }
+
 
 export {
   createShares,
@@ -170,5 +187,6 @@ export {
   walletFromEntropy,
   walletFromMnemonic,
   type Share,
-  type Wallet,
+  type Wallet
 };
+

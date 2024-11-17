@@ -16,7 +16,7 @@
   let {
     value = $bindable(""),
     variant = "text",
-    label,
+    label = "",
     placeholder = "",
     error,
     disabled = false,

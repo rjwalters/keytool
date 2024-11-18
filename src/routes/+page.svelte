@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { ShamirShareGenerator } from "$components/organisms";
+
   const components = [
     "atoms/Button",
     "atoms/CheckBox",
@@ -26,4 +28,9 @@
       {/each}
     </ul>
   </div>
+</div>
+
+<div class="p-8">
+  <h1 class="text-3xl font-bold mb-6">Shamir Share Generator</h1>
+  <ShamirShareGenerator label="" />
 </div>

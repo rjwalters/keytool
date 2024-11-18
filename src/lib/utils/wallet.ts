@@ -6,7 +6,7 @@ import { ethers, HDNodeWallet, Mnemonic } from "ethers";
 interface Wallet {
   privateKey: string; // The wallet's private key (32 bytes / 256 bits) in hex format
   addresses: string[]; // List of derived Ethereum addresses (20 bytes / 160 bits)
-  mnemonic: string; // The wallet's entropy as a BIP39 mnemonic phrase
+  mnemonic: string; // The wallet's entropy as a BIP39 mnemonic phrase (12 or 24 words)
   entropy: string; // The wallet's entropy as a 16 or 32-byte hex value
 }
 
@@ -143,6 +143,30 @@ function createShares(
 }
 
 /**
+ * Converts a BigInt value to a properly formatted entropy hex string
+ * Automatically pads to either 16 or 32 bytes based on value size
+ * @param value BigInt to convert
+ * @returns Hex string starting with "0x" padded to appropriate length
+ */
+function shareValueToEntropyHex(value: bigint): string {
+  if (value < 0n) {
+    throw new Error("Entropy value must be positive");
+  }
+
+  // Convert to hex without '0x' prefix
+  let hexString = value.toString(16);
+
+  // Calculate actual bytes needed
+  const byteLength = Math.ceil(hexString.length / 2);
+
+  // Determine target length (16 or 32 bytes)
+  const targetLength = byteLength <= 16 ? 32 : 64;
+
+  // Pad to target length and add 0x prefix
+  return `0x${hexString.padStart(targetLength, "0")}`;
+}
+
+/**
  * Recovers a wallet from a set of Shamir secret shares
  * Uses Lagrange interpolation to reconstruct the secret
  * @param shares Array of shares, length must be >= minimum required
@@ -164,10 +188,7 @@ function recoverWalletFromShares(shares: ShamirShare[]): Wallet {
   const ys = shares.map((share) => share[1]);
 
   const recoveredSecret = lagrangeInterpolate(0n, xs, ys, PRIME);
-  const hexString = recoveredSecret.toString(16).padStart(64, "0");
-  const recoveredEntropy = `0x${hexString}`;
-
-  return walletFromEntropy(recoveredEntropy);
+  return walletFromEntropy(shareValueToEntropyHex(recoveredSecret));
 }
 
 /**
@@ -247,7 +268,11 @@ function makeRandomShares(
   for (let i = 1; i <= shares; i++) {
     const x = BigInt(i);
     const y = evalAt(poly, x, prime);
-    points.push([x, y]);
+    if (y >= 0n) {
+      points.push([x, y]);
+    } else {
+      points.push([x, y + prime]); // Ensure positive modulo
+    }
   }
 
   return points;
@@ -314,9 +339,9 @@ export {
   createShares,
   generateWallet,
   recoverWalletFromShares,
+  shareValueToEntropyHex,
   walletFromEntropy,
   walletFromMnemonic,
   type ShamirShare,
-  type Wallet
+  type Wallet,
 };
-

@@ -8,7 +8,7 @@
   import { generateWallet, type Wallet } from "$utils/wallet";
 
   // State management
-  let value = $state("");
+  let entropy = $state("");
   let label = $state("Test Wallet");
   let disabled = $state(false);
   let required = $state(false);
@@ -27,7 +27,7 @@
   // Generate sample wallet
   function generateSample(bits: number) {
     const wallet = generateWallet(bits);
-    value = wallet.entropy;
+    entropy = wallet.entropy;
   }
 
   // Mode visibility controls
@@ -35,7 +35,7 @@
     id: WalletInputDisplayMode;
     label: string;
   }> = [
-    { id: "hex", label: "Hex" },
+    { id: "entropy", label: "Hex" },
     { id: "mnemonic", label: "Words" },
     { id: "grid", label: "Grid" },
     { id: "addresses", label: "Addresses" },
@@ -107,7 +107,7 @@
 
   {#snippet component()}
     <WalletInput
-      bind:value
+      bind:entropy
       {label}
       {disabled}
       {required}

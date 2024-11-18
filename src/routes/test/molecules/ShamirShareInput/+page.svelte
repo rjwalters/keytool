@@ -6,7 +6,7 @@
 
   // State management
   let shareIndex = $state("");
-  let shareValue = $state("");
+  let shareEntropy = $state("");
   let label = $state("Test Share");
   let disabled = $state(false);
   let required = $state(false);
@@ -33,7 +33,7 @@
     // Generate a random value with the specified number of bits
     const valueBytes = new Uint8Array(bits / 8);
     crypto.getRandomValues(valueBytes);
-    shareValue =
+    shareEntropy =
       "0x" +
       Array.from(valueBytes)
         .map((b) => b.toString(16).padStart(2, "0"))
@@ -44,13 +44,13 @@
   function formatShareValue(value: string): string {
     if (!value || !value.startsWith("0x")) return value;
     const byteLength = (value.length - 2) / 2;
-    return `${value.slice(0, 10)}...${value.slice(-8)} (${byteLength} bytes)`;
+    return `${value} (${byteLength} bytes)`;
   }
 </script>
 
 <ComponentTestFixture testedComponent="molecules/ShamirShareInput">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full max-w-md">
+    <div class="flex flex-col gap-4 w-full">
       <!-- Label Input -->
       <Input
         label="Label Text"
@@ -88,10 +88,9 @@
       </div>
 
       <!-- Current Share Display -->
-      {#if shareIndex || shareValue}
-        <div class="flex flex-col gap-1">
-          <p class="text-sm font-medium text-black-80">Current Share Values:</p>
-          <div class="text-sm bg-black-05 p-2 rounded">
+      {#if shareIndex || shareEntropy}
+        <div class="w-full flex flex-col gap-1">
+          <div class="w-full text-sm bg-black-05 p-2 rounded">
             <div class="flex gap-2">
               <span class="text-black-60 w-16">Index:</span>
               <span class="font-mono">{shareIndex || "empty"}</span>
@@ -99,7 +98,7 @@
             <div class="flex gap-2">
               <span class="text-black-60 w-16">Value:</span>
               <span class="font-mono"
-                >{formatShareValue(shareValue) || "empty"}</span
+                >{formatShareValue(shareEntropy) || "empty"}</span
               >
             </div>
           </div>
@@ -111,7 +110,7 @@
   {#snippet component()}
     <ShamirShareInput
       bind:shareIndex
-      bind:shareValue
+      bind:shareEntropy
       {label}
       {disabled}
       {required}

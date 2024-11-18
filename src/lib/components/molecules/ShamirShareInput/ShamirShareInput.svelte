@@ -5,7 +5,7 @@
 
   export interface ShareInputProps {
     shareIndex?: string;
-    shareValue?: string;
+    shareEntropy?: string;
     disabled?: boolean;
     required?: boolean;
     onchange?: (share: ShamirShare | undefined) => void;
@@ -14,7 +14,7 @@
 
   let {
     shareIndex = $bindable(""),
-    shareValue = $bindable(""),
+    shareEntropy = $bindable(""),
     disabled = false,
     required = false,
     onchange = () => {},
@@ -23,8 +23,8 @@
 
   let errorMessage = $state("");
 
-  // Validate the shareValue (similar to validateEntropyValue in wallet.ts)
-  function validateShareValue(hexValue: string): boolean {
+  // Validate the shareEntropy (similar to validateEntropyValue in wallet.ts)
+  function validateShareEntropy(hexValue: string): boolean {
     try {
       if (!hexValue.startsWith("0x")) {
         throw new Error("Invalid share value: must start with 0x");
@@ -36,15 +36,6 @@
       if (byteLength !== 16 && byteLength !== 32) {
         throw new Error("Invalid share value: must be 16 or 32 bytes");
       }
-
-      // Check if shareValue is within the prime field
-      // Using same PRIME as in wallet.ts: 2^256 + 297
-      const PRIME = 2n ** 256n + 297n;
-      const valueBigInt = BigInt(hexValue);
-      if (valueBigInt >= PRIME) {
-        throw new Error("Invalid share value: exceeds prime field maximum");
-      }
-
       return true;
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : "Invalid share value";
@@ -53,13 +44,12 @@
   }
 
   // Update the share when either coordinate changes
-  function updateShare() {
+  $effect(() => {
     try {
-      // Clear any previous errors
       errorMessage = "";
 
       // Only create share if we have both values
-      if (shareIndex && shareValue) {
+      if (shareIndex && shareEntropy) {
         // Validate the shareIndex is a positive integer
         const x = BigInt(shareIndex);
         if (x <= 0n) {
@@ -69,12 +59,12 @@
         }
 
         // Validate the value
-        if (!validateShareValue(shareValue)) {
+        if (!validateShareEntropy(shareEntropy)) {
           onchange(undefined);
           return;
         }
 
-        const y = BigInt(shareValue);
+        const y = BigInt(shareEntropy);
         const newShare: ShamirShare = [x, y];
         onchange(newShare);
       } else {
@@ -85,11 +75,6 @@
       errorMessage = err instanceof Error ? err.message : "Invalid share";
       onchange(undefined);
     }
-  }
-
-  // Watch for value changes
-  $effect(() => {
-    updateShare();
   });
 </script>
 
@@ -100,27 +85,24 @@
     </p>
   {/if}
 
-  <div class="flex gap-4 items-start">
+  <div class="flex gap-4 items-center">
     <!-- Index Input -->
     <div class="w-24">
       <Input
         bind:value={shareIndex}
-        label="Index"
+        variant="number"
         {disabled}
         {required}
-        type="number"
         min="1"
         placeholder="1"
       />
     </div>
 
     <!-- Value Input (reusing WalletInput for hex handling) -->
-    <div class="flex-1">
+    <div class="flex-1 border border-black-10 p-2">
       <WalletInput
-        bind:value={shareValue}
-        label="Value"
+        bind:entropy={shareEntropy}
         {disabled}
-        {required}
         hiddenModes={["addresses"]}
       />
     </div>

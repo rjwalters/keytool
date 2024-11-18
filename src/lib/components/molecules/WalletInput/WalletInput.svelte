@@ -1,6 +1,6 @@
 <script module lang="ts">
   export type WalletInputDisplayMode =
-    | "hex"
+    | "entropy"
     | "mnemonic"
     | "grid"
     | "addresses";
@@ -15,8 +15,10 @@
     type Wallet,
   } from "$utils/wallet";
 
+  import { isAriaIntent } from "$utils/aria";
+
   export interface WalletInputProps {
-    value: string; // mnemonic or hex
+    entropy: string; // 16 or 32 bytes
     label?: string;
     disabled?: boolean;
     required?: boolean;
@@ -25,14 +27,12 @@
     onchange?: (wallet: Wallet) => void;
   }
 
-  import { isAriaIntent } from "$utils/aria";
-
   let {
-    value = $bindable(""),
-    label = "Key",
+    entropy = $bindable(""),
+    label = "",
     disabled = false,
     required = false,
-    displayMode = "grid",
+    displayMode = "mnemonic",
     hiddenModes = [],
     onchange = () => {},
   }: WalletInputProps = $props();
@@ -54,6 +54,24 @@
     }
   });
 
+  $effect(() => {
+    if (!entropy) {
+      wallet = null;
+      errorMessage = "";
+      return;
+    }
+
+    try {
+      // console.log(`updating wallet using entropy = ${entropy}`);
+      wallet = walletFromEntropy(entropy);
+      errorMessage = "";
+    } catch (err) {
+      console.error("Effect error:", err);
+      errorMessage = "Invalid entropy";
+      wallet = null;
+    }
+  });
+
   function startEditing(index: number, word: string) {
     if (disabled) return;
     editingIndex = index;
@@ -61,39 +79,37 @@
 
   function handleWordEdit(index: number, newWord: string) {
     try {
-      console.log(`attempting to change ${index} to ${newWord}`);
       const words = wallet?.mnemonic.split(" ") ?? [];
       words[index] = newWord.trim().toLowerCase();
-      const newMnemonic = words.join(" ");
-      wallet = walletFromMnemonic(newMnemonic);
-      onchange(wallet);
+      handleMnemonicChange(words.join(" "));
       editingIndex = null;
-      errorMessage = "";
     } catch (err) {
       console.log(err);
       errorMessage = "Invalid checksum";
     }
   }
 
-  // Update wallet when value changes
-  $effect(() => {
-    if (!value) {
-      wallet = null;
-      errorMessage = "";
-      return;
-    }
-
+  function handleMnemonicChange(mnemonic: string) {
     try {
-      wallet = value.startsWith("0x")
-        ? walletFromEntropy(value)
-        : walletFromMnemonic(value);
+      const newWallet = walletFromMnemonic(mnemonic);
+      entropy = newWallet.entropy;
+      onchange(newWallet);
       errorMessage = "";
     } catch (err) {
-      console.error("Effect error:", err);
-      errorMessage = `Invalid entropy`;
-      wallet = null;
+      errorMessage = "Invalid mnemonic";
     }
-  });
+  }
+
+  function handleEntropyChange(hexValue: string) {
+    try {
+      const newWallet = walletFromEntropy(`0x${hexValue}`);
+      entropy = newWallet.entropy;
+      onchange(newWallet);
+      errorMessage = "";
+    } catch (err) {
+      errorMessage = "Invalid hex";
+    }
+  }
 
   function handleKeyDown(e: KeyboardEvent, index: number, word: string) {
     if (isAriaIntent(e)) {
@@ -107,11 +123,24 @@
     }
   }
 
+  function copyToClipboard() {
+    if (!wallet) return;
+
+    const clipboardValue =
+      activeMode === "entropy"
+        ? wallet.entropy
+        : activeMode === "addresses"
+          ? wallet.addresses[0]
+          : wallet.mnemonic;
+
+    navigator.clipboard.writeText(clipboardValue);
+  }
+
   const modes: Array<{
     id: WalletInputDisplayMode;
     label: string;
   }> = [
-    { id: "hex", label: "Hex" },
+    { id: "entropy", label: "Hex" },
     { id: "mnemonic", label: "Words" },
     { id: "grid", label: "Grid" },
     { id: "addresses", label: "Addresses" },
@@ -121,10 +150,10 @@
     modes.filter((mode) => !hiddenModes.includes(mode.id))
   );
 
-  // Generate sample wallet
   function generateSample(bits: number) {
     const wallet = generateWallet(bits);
-    value = wallet.entropy;
+    entropy = wallet.entropy;
+    onchange(wallet);
   }
 </script>
 
@@ -170,17 +199,7 @@
       <Button
         variant="secondary"
         size="sm"
-        onclick={() => {
-          let clipboardValue = undefined;
-          if (activeMode === "hex") {
-            clipboardValue = wallet?.entropy;
-          } else if (activeMode === "addresses") {
-            clipboardValue = wallet?.addresses[0];
-          } else {
-            clipboardValue = wallet?.mnemonic;
-          }
-          navigator.clipboard.writeText(clipboardValue || "");
-        }}
+        onclick={copyToClipboard}
         disabled={!wallet}
       >
         Copy
@@ -190,7 +209,7 @@
 </div>
 
 <div class="w-full flex flex-row gap-2 items-start">
-  {#if activeMode === "hex"}
+  {#if activeMode === "entropy"}
     <div class="w-full flex flex-row gap-2 items-center">
       <p class="pr-2 text-sm font-medium text-black-80">0x</p>
 
@@ -200,14 +219,8 @@
         {disabled}
         placeholder={"Enter 16 or 32 hex bytes..."}
         onchange={(e) => {
-          try {
-            const target = e.target as HTMLInputElement;
-            wallet = walletFromEntropy(`0x${target.value}`);
-            onchange(wallet);
-            errorMessage = "";
-          } catch (err) {
-            errorMessage = "Invalid hex";
-          }
+          const target = e.target as HTMLInputElement;
+          handleEntropyChange(target.value);
         }}
       />
     </div>
@@ -217,16 +230,10 @@
       class:cursor-not-allowed={disabled}
       value={wallet?.mnemonic ?? ""}
       readonly={disabled}
-      placeholder="Enter your 12/24 word mnemonic phrase..."
+      placeholder="Enter your 12 or 24 word mnemonic phrase..."
       onchange={(e) => {
-        try {
-          const target = e.target as HTMLTextAreaElement;
-          wallet = walletFromMnemonic(target.value);
-          onchange(wallet);
-          errorMessage = "";
-        } catch (err) {
-          errorMessage = "Invalid mnemonic";
-        }
+        const target = e.target as HTMLTextAreaElement;
+        handleMnemonicChange(target.value);
       }}
     ></textarea>
   {:else if activeMode === "grid"}

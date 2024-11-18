@@ -2,9 +2,10 @@ import {
   createShares,
   generateWallet,
   recoverWalletFromShares,
+  shareValueToEntropyHex,
   walletFromEntropy,
   walletFromMnemonic,
-  type Share,
+  type ShamirShare,
   type Wallet,
 } from "$utils/wallet";
 import { ethers } from "ethers";
@@ -187,7 +188,7 @@ describe("Wallet Utilities", () => {
     const minimum = 3;
     const total = 5;
     let wallet: Wallet;
-    let shares: Share[];
+    let shares: ShamirShare[];
 
     beforeEach(() => {
       wallet = walletFromEntropy(TEST_ENTROPY);
@@ -255,7 +256,7 @@ describe("Wallet Utilities", () => {
     });
 
     it("should handle minimum valid entropy", () => {
-      const minEntropy = "0x" + "0".repeat(63) + "1";
+      const minEntropy = "0x" + "0".repeat(31) + "1";
       const minWallet = walletFromEntropy(minEntropy);
       const minShares = createShares(minWallet, 3, 5);
       const recovered = recoverWalletFromShares(minShares.slice(0, 3));
@@ -271,9 +272,26 @@ describe("Wallet Utilities", () => {
         ];
 
         invalidShares.forEach((invalid) => {
-          expect(() => recoverWalletFromShares([invalid as Share])).toThrow();
+          expect(() =>
+            recoverWalletFromShares([invalid as ShamirShare]),
+          ).toThrow();
         });
       });
+    });
+  });
+
+  describe("shareValueToEntropyHex", () => {
+    it.each([
+      [0n, "0x" + "0".repeat(32)],
+      [1n, "0x" + "0".repeat(31) + "1"],
+      [BigInt("0x" + "f".repeat(32)), "0x" + "f".repeat(32)],
+      [BigInt("0x" + "f".repeat(64)), "0x" + "f".repeat(64)],
+    ])("should format %s correctly", (input, expected) => {
+      expect(shareValueToEntropyHex(input)).toBe(expected);
+    });
+
+    it("should reject negative values", () => {
+      expect(() => shareValueToEntropyHex(-1n)).toThrow();
     });
   });
 });

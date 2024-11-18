@@ -14,7 +14,7 @@ interface Wallet {
  * Type representing a point in the finite field for Shamir's Secret Sharing
  * [x coordinate, y coordinate]
  */
-type Share = [bigint, bigint];
+type ShamirShare = [bigint, bigint];
 
 /**
  * Prime field modulus used for Shamir's Secret Sharing
@@ -72,7 +72,7 @@ function validateEntropyValue(
  * Validates a set of secret shares for reconstruction
  * Checks format, types, and uniqueness of share coordinates
  */
-function validateShares(shares: Share[]): void {
+function validateShares(shares: ShamirShare[]): void {
   if (!Array.isArray(shares)) {
     throw new Error("Invalid shares: must be an array");
   }
@@ -130,7 +130,7 @@ function createShares(
   wallet: Wallet,
   minimum: number,
   shares: number,
-): Share[] {
+): ShamirShare[] {
   if (minimum > shares) {
     throw new Error("Pool secret would be irrecoverable.");
   }
@@ -149,7 +149,7 @@ function createShares(
  * @returns Reconstructed wallet
  * @throws If shares are invalid or insufficient
  */
-function recoverWalletFromShares(shares: Share[]): Wallet {
+function recoverWalletFromShares(shares: ShamirShare[]): Wallet {
   validateShares(shares);
 
   // Get required number of shares from the first share's x coordinate
@@ -230,7 +230,7 @@ function makeRandomShares(
   minimum: number,
   shares: number,
   prime: bigint = PRIME,
-): Share[] {
+): ShamirShare[] {
   if (minimum > shares) {
     throw new Error("Pool secret would be irrecoverable.");
   }
@@ -243,7 +243,7 @@ function makeRandomShares(
     poly.push(random32Bytes() % prime);
   }
 
-  const points: Share[] = [];
+  const points: ShamirShare[] = [];
   for (let i = 1; i <= shares; i++) {
     const x = BigInt(i);
     const y = evalAt(poly, x, prime);
@@ -316,6 +316,7 @@ export {
   recoverWalletFromShares,
   walletFromEntropy,
   walletFromMnemonic,
-  type Share,
-  type Wallet,
+  type ShamirShare,
+  type Wallet
 };
+

@@ -21,6 +21,7 @@
     disabled?: boolean;
     required?: boolean;
     displayMode?: WalletInputDisplayMode;
+    hiddenModes?: WalletInputDisplayMode[];
     onchange?: (wallet: Wallet) => void;
   }
 
@@ -32,6 +33,7 @@
     disabled = false,
     required = false,
     displayMode = "grid",
+    hiddenModes = [],
     onchange = () => {},
   }: WalletInputProps = $props();
 
@@ -39,6 +41,18 @@
   let wallet = $state<Wallet | null>(null);
   let errorMessage = $state("");
   let editingIndex = $state<number | null>(null);
+
+  // If the current activeMode is in hiddenModes, switch to the first available mode
+  $effect(() => {
+    if (hiddenModes.includes(activeMode)) {
+      const availableModes = modes.filter(
+        (mode) => !hiddenModes.includes(mode.id)
+      );
+      if (availableModes.length > 0) {
+        activeMode = availableModes[0].id;
+      }
+    }
+  });
 
   function startEditing(index: number, word: string) {
     if (disabled) return;
@@ -103,6 +117,10 @@
     { id: "addresses", label: "Addresses" },
   ];
 
+  const visibleModes = $derived(
+    modes.filter((mode) => !hiddenModes.includes(mode.id))
+  );
+
   // Generate sample wallet
   function generateSample(bits: number) {
     const wallet = generateWallet(bits);
@@ -130,7 +148,7 @@
     {/if}
 
     <div class="w-1/3 flex gap-2 justify-end">
-      {#each modes as mode}
+      {#each visibleModes as mode}
         <div class:hidden={activeMode === mode.id}>
           <Button
             variant="primary"

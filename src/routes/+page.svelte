@@ -5,6 +5,7 @@
     "atoms/Input",
     "atoms/RadioGroup",
     "molecules/WalletInput",
+    "molecules/ShamirShareInput",
   ];
 </script>
 

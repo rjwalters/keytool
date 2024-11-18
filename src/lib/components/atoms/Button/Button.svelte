@@ -50,8 +50,7 @@
 
   // Derive classes using $derived
   const classes = $derived(`
-    relative
-    inline-flex
+    w-full
     items-center
     justify-center
     ${sizeClasses[size]}

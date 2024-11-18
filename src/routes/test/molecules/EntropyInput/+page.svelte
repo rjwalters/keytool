@@ -6,7 +6,7 @@
 
   // State management
   let value = $state("");
-  let label = $state("Key Input");
+  let label = $state("Entropy");
   let error = $state("");
   let disabled = $state(false);
   let required = $state(false);
@@ -22,8 +22,8 @@
   }
 
   // Generate sample wallet
-  function generateSample() {
-    const wallet = generateWallet();
+  function generateSample(bits: number) {
+    const wallet = generateWallet(bits);
     value = wallet.entropy;
   }
 </script>
@@ -54,9 +54,22 @@
       </Button>
 
       <!-- Sample Generator -->
-      <Button variant="secondary" size="sm" onclick={generateSample}>
-        Generate Sample Wallet
-      </Button>
+      <div class="flex gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onclick={() => generateSample(128)}
+        >
+          Generate 128-bit
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onclick={() => generateSample(256)}
+        >
+          Generate 256-bit
+        </Button>
+      </div>
 
       <!-- Message Display -->
       <div class="flex flex-col gap-2 text-sm">

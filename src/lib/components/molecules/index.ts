@@ -1,1 +1,1 @@
-export * from "./EntropyInput";
+export * from "./WalletInput";

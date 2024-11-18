@@ -1,0 +1,271 @@
+<script module lang="ts">
+  export type WalletInputDisplayMode =
+    | "hex"
+    | "mnemonic"
+    | "grid"
+    | "addresses";
+</script>
+
+<script lang="ts">
+  import { Button, Input } from "$components/atoms";
+  import {
+    generateWallet,
+    walletFromEntropy,
+    walletFromMnemonic,
+    type Wallet,
+  } from "$utils/wallet";
+
+  export interface WalletInputProps {
+    value: string; // mnemonic or hex
+    label?: string;
+    disabled?: boolean;
+    required?: boolean;
+    displayMode?: WalletInputDisplayMode;
+    onchange?: (wallet: Wallet) => void;
+  }
+
+  import { isAriaIntent } from "$utils/aria";
+
+  let {
+    value = $bindable(""),
+    label = "Key",
+    disabled = false,
+    required = false,
+    displayMode = "grid",
+    onchange = () => {},
+  }: WalletInputProps = $props();
+
+  let activeMode = $state(displayMode);
+  let wallet = $state<Wallet | null>(null);
+  let errorMessage = $state("");
+  let editingIndex = $state<number | null>(null);
+
+  function startEditing(index: number, word: string) {
+    if (disabled) return;
+    editingIndex = index;
+  }
+
+  function handleWordEdit(index: number, newWord: string) {
+    try {
+      console.log(`attempting to change ${index} to ${newWord}`);
+      const words = wallet?.mnemonic.split(" ") ?? [];
+      words[index] = newWord.trim().toLowerCase();
+      const newMnemonic = words.join(" ");
+      wallet = walletFromMnemonic(newMnemonic);
+      onchange(wallet);
+      editingIndex = null;
+      errorMessage = "";
+    } catch (err) {
+      console.log(err);
+      errorMessage = "Invalid checksum";
+    }
+  }
+
+  // Update wallet when value changes
+  $effect(() => {
+    if (!value) {
+      wallet = null;
+      errorMessage = "";
+      return;
+    }
+
+    try {
+      wallet = value.startsWith("0x")
+        ? walletFromEntropy(value)
+        : walletFromMnemonic(value);
+      errorMessage = "";
+    } catch (err) {
+      console.error("Effect error:", err);
+      errorMessage = `Invalid entropy`;
+      wallet = null;
+    }
+  });
+
+  function handleKeyDown(e: KeyboardEvent, index: number, word: string) {
+    if (isAriaIntent(e)) {
+      e.preventDefault();
+      if (editingIndex !== index) {
+        startEditing(index, word);
+      } else {
+        const target = e.target as HTMLInputElement;
+        handleWordEdit(index, target.value);
+      }
+    }
+  }
+
+  const modes: Array<{
+    id: WalletInputDisplayMode;
+    label: string;
+  }> = [
+    { id: "hex", label: "Hex" },
+    { id: "mnemonic", label: "Words" },
+    { id: "grid", label: "Grid" },
+    { id: "addresses", label: "Addresses" },
+  ];
+
+  // Generate sample wallet
+  function generateSample(bits: number) {
+    const wallet = generateWallet(bits);
+    value = wallet.entropy;
+  }
+</script>
+
+<div class="w-full flex gap-2 flex-col p-2">
+  <div class="flex flex-row items-center justify-between">
+    {#if label}
+      <p class="flex-1 mb-1 text-sm font-medium text-black-80" class:required>
+        {label}
+      </p>
+    {/if}
+
+    {#if !wallet}
+      <div class="flex gap-2">
+        <Button variant="primary" size="sm" onclick={() => generateSample(128)}>
+          Generate 128-bit
+        </Button>
+        <Button variant="primary" size="sm" onclick={() => generateSample(256)}>
+          Generate 256-bit
+        </Button>
+      </div>
+    {/if}
+
+    <div class="w-1/3 flex gap-2 justify-end">
+      {#each modes as mode}
+        <div class:hidden={activeMode === mode.id}>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!wallet}
+            onclick={() => {
+              editingIndex = null;
+              errorMessage = "";
+              activeMode = mode.id;
+            }}
+          >
+            {mode.label}
+          </Button>
+        </div>
+      {/each}
+    </div>
+
+    <div class="ml-4 w-1/12">
+      <Button
+        variant="secondary"
+        size="sm"
+        onclick={() => {
+          let clipboardValue = undefined;
+          if (activeMode === "hex") {
+            clipboardValue = wallet?.entropy;
+          } else if (activeMode === "addresses") {
+            clipboardValue = wallet?.addresses[0];
+          } else {
+            clipboardValue = wallet?.mnemonic;
+          }
+          navigator.clipboard.writeText(clipboardValue || "");
+        }}
+        disabled={!wallet}
+      >
+        Copy
+      </Button>
+    </div>
+  </div>
+</div>
+
+<div class="w-full flex flex-row gap-2 items-start">
+  {#if activeMode === "hex"}
+    <div class="w-full flex flex-row gap-2 items-center">
+      <p class="pr-2 text-sm font-medium text-black-80">0x</p>
+
+      <Input
+        value={wallet?.entropy.slice(2) ?? ""}
+        label=""
+        {disabled}
+        placeholder={"Enter 16 or 32 hex bytes..."}
+        onchange={(e) => {
+          try {
+            const target = e.target as HTMLInputElement;
+            wallet = walletFromEntropy(`0x${target.value}`);
+            onchange(wallet);
+            errorMessage = "";
+          } catch (err) {
+            errorMessage = "Invalid hex";
+          }
+        }}
+      />
+    </div>
+  {:else if activeMode === "mnemonic"}
+    <textarea
+      class="w-full p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 resize-none"
+      class:cursor-not-allowed={disabled}
+      value={wallet?.mnemonic ?? ""}
+      readonly={disabled}
+      placeholder="Enter your 12/24 word mnemonic phrase..."
+      onchange={(e) => {
+        try {
+          const target = e.target as HTMLTextAreaElement;
+          wallet = walletFromMnemonic(target.value);
+          onchange(wallet);
+          errorMessage = "";
+        } catch (err) {
+          errorMessage = "Invalid mnemonic";
+        }
+      }}
+    ></textarea>
+  {:else if activeMode === "grid"}
+    <div class="w-full">
+      <div class="grid grid-cols-6 gap-x-2 gap-y-1">
+        {#each Array(24) as _, index}
+          {@const word = wallet?.mnemonic.split(" ")[index] ?? ""}
+          {#if index < (wallet?.mnemonic.split(" ").length ?? 0)}
+            <div class="flex flex-row items-center min-w-0">
+              <span class="flex-shrink-0 w-5 text-sm text-black-60"
+                >{index + 1}:</span
+              >
+              <input
+                type="text"
+                value={word}
+                readonly={editingIndex !== index}
+                class="flex-1 min-w-0 p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 hover:bg-black-05
+                    {editingIndex === index ? 'border-black-100' : ''}"
+                class:cursor-not-allowed={disabled}
+                onclick={() => startEditing(index, word)}
+                onkeydown={(e) => handleKeyDown(e, index, word)}
+                onchange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  handleWordEdit(index, target.value);
+                }}
+              />
+            </div>
+          {/if}
+        {/each}
+      </div>
+    </div>
+  {:else if activeMode === "addresses"}
+    <div class="w-full">
+      <div class="flex flex-col gap-2">
+        {#each wallet?.addresses ?? [] as address, index}
+          <div class="flex flex-row items-center gap-2">
+            <span class="flex-shrink-0 w-24 text-sm text-black-60">
+              m/44'/60'/0'/0/{index}:
+            </span>
+            <div
+              class="flex-1 p-2 border-2 border-black-40 rounded text-sm bg-white-100 font-mono"
+            >
+              {address}
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  {#if errorMessage}
+    <p class="w-full mt-1 text-sm text-red-100" role="alert">{errorMessage}</p>
+  {/if}
+</div>
+
+<style lang="postcss">
+  .required {
+    @apply after:ml-0.5 after:text-red-100 after:content-['*'];
+  }
+</style>

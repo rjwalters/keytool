@@ -1,24 +1,23 @@
 <script lang="ts">
   import { Button, CheckBox, Input } from "$components/atoms";
-  import { EntropyInput } from "$components/molecules";
+  import { WalletInput } from "$components/molecules";
   import { ComponentTestFixture } from "$components/routes/test";
-  import { generateWallet } from "$utils/wallet";
+  import { generateWallet, type Wallet } from "$utils/wallet";
 
   // State management
   let value = $state("");
-  let label = $state("Entropy");
-  let error = $state("");
+  let label = $state("Test Wallet");
   let disabled = $state(false);
   let required = $state(false);
 
   // Message display
   let changeMessage = $state("");
 
-  function handleChange(newValue: string) {
-    changeMessage = `Changed to: ${newValue.slice(0, 20)}...`;
+  function handleChange(wallet: Wallet) {
+    changeMessage = `Changed entropy to: ${wallet.entropy}`;
     setTimeout(() => {
       changeMessage = "";
-    }, 2000);
+    }, 5000);
   }
 
   // Generate sample wallet
@@ -28,7 +27,7 @@
   }
 </script>
 
-<ComponentTestFixture testedComponent="molecules/EntropyInput">
+<ComponentTestFixture testedComponent="molecules/WalletInput">
   {#snippet controls()}
     <div class="flex flex-col gap-4 w-full max-w-md">
       <!-- Label Input -->
@@ -43,15 +42,6 @@
         <CheckBox bind:value={disabled} label="Disabled" />
         <CheckBox bind:value={required} label="Required" />
       </div>
-
-      <!-- Error Toggle -->
-      <Button
-        variant="outline"
-        size="sm"
-        onclick={() => (error = error ? "" : "This is an error message")}
-      >
-        Toggle Error
-      </Button>
 
       <!-- Sample Generator -->
       <div class="flex gap-2">
@@ -79,10 +69,9 @@
   {/snippet}
 
   {#snippet component()}
-    <EntropyInput
+    <WalletInput
       bind:value
       {label}
-      {error}
       {disabled}
       {required}
       onchange={handleChange}

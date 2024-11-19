@@ -109,7 +109,7 @@
 
   {#snippet component()}
     <ShamirShareInput
-      bind:shareIndex
+      {shareIndex}
       bind:shareEntropy
       {label}
       {disabled}

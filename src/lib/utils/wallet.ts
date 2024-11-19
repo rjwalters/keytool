@@ -145,6 +145,36 @@ function createShares(
 }
 
 /**
+ * Creates self-indexing secret shares from a wallet's entropy
+ * Shares encode their own position in their high bits
+ * @param wallet Source wallet to share
+ * @param minimum Number of shares required for reconstruction
+ * @param shares Total number of shares to generate
+ * @returns Array of [x,y] coordinate pairs where y high bits encode position
+ */
+function createIndexedShares(
+  wallet: Wallet,
+  minimum: number,
+  shares: number,
+): ShamirShare[] {
+  if (minimum > shares) {
+    throw new Error("Pool secret would be irrecoverable.");
+  }
+  const entropyHex = wallet.entropy.startsWith("0x")
+    ? wallet.entropy.slice(2)
+    : wallet.entropy;
+
+  const shareBitLength =
+    entropyHex.length <= 32
+      ? EntropyBitLength.bits128
+      : EntropyBitLength.bits256;
+
+  const secret = ethers.toBigInt("0x" + entropyHex);
+
+  return makeIndexedShares(secret, minimum, shares, shareBitLength);
+}
+
+/**
  * Converts a BigInt value to a properly formatted entropy hex string
  * Automatically pads to either 16 or 32 bytes based on value size
  * @param value BigInt to convert
@@ -167,12 +197,11 @@ function shareValueToEntropyHex(value: bigint): string {
  * @returns Reconstructed wallet
  * @throws If shares are invalid or insufficient
  */
-function recoverWalletFromShares(shares: ShamirShare[]): Wallet {
+function recoverWalletFromShares(
+  requiredShares: number,
+  shares: ShamirShare[],
+): Wallet {
   validateShares(shares);
-
-  // Get required number of shares from the first share's x coordinate
-  // In Shamir's scheme, the x coordinate indicates the position/index
-  const requiredShares = Number(shares[0][0]) || 5; // Default to 5 if we can't determine
 
   if (shares.length < requiredShares) {
     throw new Error(`Need at least ${requiredShares} shares for recovery`);
@@ -253,34 +282,84 @@ function makeRandomShares(
   shares: number,
   bitLength: EntropyBitLength,
 ): ShamirShare[] {
+  if (minimum < 2) {
+    throw new Error("Required share must be >= 2");
+  }
+
   if (minimum > shares) {
     throw new Error("Pool secret would be irrecoverable.");
   }
 
-  const prime = bitLength === EntropyBitLength.bits128 ? PRIME_128 : PRIME_256;
+  const params =
+    bitLength === EntropyBitLength.bits128
+      ? { prime: PRIME_128, maxValue: 1n << 128n, bytes: 16 }
+      : { prime: PRIME_256, maxValue: 1n << 256n, bytes: 32 };
+
+  const { prime, maxValue, bytes } = params;
 
   secret = secret % prime;
   if (secret < 0n) secret += prime;
 
-  const bytes = bitLength === EntropyBitLength.bits128 ? 16 : 32;
+  // If by vanishingly small chance we calculate a small negative y coordinate, it
+  // will exceed 128 or 256 bits when added to our prime. If this happens, we will
+  // just generate different random shares
+  while (true) {
+    const poly = [secret];
+    for (let i = 0; i < minimum - 1; i++) {
+      poly.push(randomBytes(bytes) % prime);
+    }
 
-  const poly = [secret];
-  for (let i = 0; i < minimum - 1; i++) {
-    poly.push(randomBytes(bytes) % prime);
-  }
+    const points: ShamirShare[] = [];
+    let allPointsValid = true;
 
-  const points: ShamirShare[] = [];
-  for (let i = 1; i <= shares; i++) {
-    const x = BigInt(i);
-    const y = evalAt(poly, x, prime);
-    if (y >= 0n) {
+    for (let i = 1; i <= shares; i++) {
+      const x = BigInt(i);
+      let y = evalAt(poly, x, prime);
+
+      if (y < 0n) {
+        y += prime; // Ensure positive modulo
+      }
+
+      // Check if y-value exceeds our bit length
+      if (y >= maxValue) {
+        allPointsValid = false;
+        break;
+      }
+
       points.push([x, y]);
-    } else {
-      points.push([x, y + prime]); // Ensure positive modulo
+    }
+    if (allPointsValid) {
+      return points;
     }
   }
+}
 
-  return points;
+/**
+ * Creates shares that self-encode their index using brute force
+ * Coefficients are uniformly random
+ * X coordinates are consecutive integers starting at 1
+ * Y coordinate high bits encode X coordinates
+ */
+function makeIndexedShares(
+  secret: bigint,
+  minimum: number,
+  shares: number,
+  bitLength: EntropyBitLength,
+): ShamirShare[] {
+  while (true) {
+    let candidateShares = makeRandomShares(secret, minimum, shares, bitLength);
+
+    // Check if y-values' high bits match their indices
+    const validIndexing = candidateShares.every((share, index) => {
+      // Get the top 3 bits of the y-coordinate
+      const highBits = Number(share[1] >> (BigInt(bitLength) - 3n));
+      // Should match index + 1 (since we want to avoid 0)
+      return highBits === index + 1;
+    });
+    if (validIndexing) {
+      return candidateShares;
+    }
+  }
 }
 
 function extendedGCD(a: bigint, b: bigint): [bigint, bigint] {
@@ -340,9 +419,51 @@ function lagrangeInterpolate(
   return result;
 }
 
+/**
+ * Recovers a wallet from IndexedShares by extracting indices from y-value high bits
+ * No x-coordinates required since position information is encoded in shares
+ * @param shares Array of shares with position encoded in y-value high bits
+ * @returns Reconstructed wallet
+ */
+function recoverWalletFromIndexedShares(
+  requiredShares: number,
+  shares: ShamirShare[],
+): Wallet {
+  if (!Array.isArray(shares)) {
+    throw new Error("Invalid shares: must be an array");
+  }
+
+  if (shares.length === 0) {
+    throw new Error("Invalid shares: empty array");
+  }
+
+  // Check if all shares are 128-bit by examining their y-values
+  const is128Bit = shares.every((share) => {
+    const yHex = share[1].toString(16);
+    return yHex.length <= 32;
+  });
+  const bitLength = is128Bit ? 128 : 256;
+
+  const sortedShares = [...shares].sort((a, b) => (a[1] > b[1] ? 1 : -1));
+
+  // Validate that indices are sequential and valid
+  sortedShares.forEach((share, i) => {
+    const index = Number(share[1] >> (BigInt(bitLength) - 3n));
+    if (index !== i + 1) {
+      throw new Error(
+        `Invalid share index encoding: expected ${i + 1}, got ${index}`,
+      );
+    }
+  });
+
+  return recoverWalletFromShares(requiredShares, sortedShares);
+}
+
 export {
+  createIndexedShares,
   createShares,
   generateWallet,
+  recoverWalletFromIndexedShares,
   recoverWalletFromShares,
   shareValueToEntropyHex,
   walletFromEntropy,

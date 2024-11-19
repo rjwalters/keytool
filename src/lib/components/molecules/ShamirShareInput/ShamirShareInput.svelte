@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Input } from "$components/atoms";
   import { WalletInput } from "$components/molecules";
   import type { ShamirShare } from "$utils/wallet";
 
   export interface ShareInputProps {
-    shareIndex?: string;
-    shareEntropy?: string;
+    shareIndex: string;
+    shareEntropy: string;
     disabled?: boolean;
     required?: boolean;
     onchange?: (share: ShamirShare | undefined) => void;
@@ -13,7 +12,7 @@
   }
 
   let {
-    shareIndex = $bindable(""),
+    shareIndex = "",
     shareEntropy = $bindable(""),
     disabled = false,
     required = false,
@@ -86,16 +85,11 @@
   {/if}
 
   <div class="flex gap-4 items-center">
-    <!-- Index Input -->
-    <div class="w-24">
-      <Input
-        bind:value={shareIndex}
-        variant="number"
-        {disabled}
-        {required}
-        min="1"
-        placeholder="1"
-      />
+    <!-- Index -->
+    <div
+      class="w-12 flex items-center justify-center h-full font-medium text-lg"
+    >
+      {shareIndex}
     </div>
 
     <!-- Value Input (reusing WalletInput for hex handling) -->

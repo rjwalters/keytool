@@ -10,6 +10,7 @@
   let isRequired = $state(false);
   let letterWidth = $state(10);
   let maxPerColumn = $state(5);
+  let isTransposed = $state(false);
   let options = [
     "Option 1",
     "Option 2",
@@ -62,8 +63,17 @@
         required
       />
 
-      <!-- Required Toggle -->
-      <CheckBox label="Required" bind:value={isRequired} variant="default" />
+      <div class="flex gap-4">
+        <!-- Required Toggle -->
+        <CheckBox label="Required" bind:value={isRequired} variant="default" />
+
+        <!-- Transpose Toggle -->
+        <CheckBox
+          label="Transpose"
+          bind:value={isTransposed}
+          variant="default"
+        />
+      </div>
 
       <!-- Message Display -->
       <div class="flex flex-col gap-2 text-sm">
@@ -79,10 +89,11 @@
       label={customLabel}
       {options}
       bind:value={selectedValue}
-      bind:index={selectedIndex}
+      index={selectedIndex}
       required={isRequired}
       letterWidthPx={letterWidth}
       maxOptionsPerColumn={maxPerColumn}
+      transpose={isTransposed}
       onChange={handleChange}
     />
   {/snippet}

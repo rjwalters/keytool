@@ -7,73 +7,87 @@
     required?: boolean;
     letterWidthPx?: number;
     maxOptionsPerColumn?: number;
+    transpose?: boolean;
     onChange?: (value: string, index: number) => void;
   }
 </script>
 
 <script lang="ts">
   import { toTitle } from "$utils/text";
-  import { untrack } from "svelte";
 
   let {
     label = null,
     options = [],
     value = $bindable(undefined),
-    index = $bindable(undefined),
+    index = undefined,
     required = false,
     letterWidthPx = 10,
     maxOptionsPerColumn = 5,
-    onChange = () => {},
+    transpose = false,
+    onChange = (_value, _index) => {},
   }: RadioGroupProps = $props();
 
-  // Derived values using $derived rune
-  const maxStringLength = $derived(Math.max(...options.map((o) => o?.length)));
-  const columnWidth = $derived(letterWidthPx * (maxStringLength + 5));
-  const groupName = $derived(options.join(""));
-  const numColumns = $derived(Math.ceil(options.length / maxOptionsPerColumn));
+  let selectedIndex = $state(index ?? undefined);
 
-  // Initialize index when value is provided
+  // Keep internal state in sync with external index
   $effect(() => {
-    const currentValue = value;
-    if (currentValue !== undefined && index === undefined) {
-      const foundIndex = untrack(() => options.indexOf(currentValue));
-      if (foundIndex !== -1) {
-        index = foundIndex;
-      }
+    if (selectedIndex != index) {
+      selectedIndex = index;
     }
   });
 
-  // Helper function for handling change events
-  function handleChange(newValue: string, newIndex: number) {
-    value = newValue;
-    index = newIndex;
-    onChange(newValue, newIndex);
+  const maxStringLength = $derived(Math.max(...options.map((o) => o?.length)));
+  const columnWidth = $derived(letterWidthPx * (maxStringLength + 5));
+  const groupName = $derived(options.join(""));
+
+  // Calculate optimal rows and columns based on transpose mode
+  function gridDimensions(): { cols: number; rows: number } {
+    if (transpose) {
+      // When transposed, we want to fill rows first
+      const optimalRowCount = Math.ceil(Math.sqrt(options.length));
+      const rows = Math.min(optimalRowCount, maxOptionsPerColumn);
+      const cols = Math.ceil(options.length / rows);
+      return { rows, cols };
+    } else {
+      // Normal mode: limit by maxOptionsPerColumn
+      const rows = Math.min(options.length, maxOptionsPerColumn);
+      const cols = Math.ceil(options.length / maxOptionsPerColumn);
+      return { rows, cols };
+    }
   }
 </script>
 
-<div
-  class="flex w-full flex-col"
-  style="--column-width: {columnWidth}px; --num-columns: {numColumns};"
->
+<div class="flex w-full flex-col">
   {#if label}
     <div class="mb-1.5 leading-[160%] text-black-80" class:required>
       {label}
     </div>
   {/if}
 
-  <div class="grid-container place-items-start gap-x-2 gap-y-1">
-    {#each options as option, i}
+  <div
+    class="grid place-items-start gap-x-2 gap-y-1"
+    style="
+     grid-template-columns: repeat({gridDimensions()
+      .cols}, minmax({columnWidth}px, 1fr));
+      grid-template-rows: repeat({gridDimensions().rows}, min-content);
+      grid-auto-flow: {transpose ? 'column' : 'row'};
+    "
+  >
+    {#each options as option, optionIndex}
       <div class="w-fit">
         <input
           type="radio"
-          id={`${groupName}-${i}`}
+          id={`${groupName}-${optionIndex}`}
           name={groupName}
-          value={i}
-          checked={index === i}
-          onchange={() => handleChange(option, i)}
+          value={optionIndex}
+          checked={selectedIndex === optionIndex}
+          onchange={() => {
+            selectedIndex = optionIndex;
+            onChange(option, optionIndex);
+          }}
           class="m-1"
         />
-        <label for={`${groupName}-${option}`}>
+        <label for={`${groupName}-${optionIndex}`}>
           {toTitle(option)}
         </label>
       </div>
@@ -84,15 +98,5 @@
 <style lang="postcss">
   .required {
     @apply after:ml-0.5 after:text-red-100 after:content-['*'];
-  }
-
-  .grid-container {
-    display: grid;
-    grid-template-columns: repeat(
-      var(--num-columns),
-      minmax(var(--column-width), 1fr)
-    );
-    grid-auto-flow: row;
-    grid-auto-rows: min-content;
   }
 </style>

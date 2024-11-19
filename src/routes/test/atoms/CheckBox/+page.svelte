@@ -12,7 +12,6 @@
   let value = $state(false);
   let isDisabled = $state(false);
   let selectedVariant = $state<CheckBoxVariant>("default");
-  let selectedVariantIndex = $state(0);
   let customLabel = $state("My CheckBox");
 
   // Variant options array for type safety
@@ -34,7 +33,6 @@
         label="Variant"
         options={variants}
         bind:value={selectedVariant}
-        bind:index={selectedVariantIndex}
         letterWidthPx={12}
         maxOptionsPerColumn={2}
       />

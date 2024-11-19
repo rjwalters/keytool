@@ -18,7 +18,7 @@
     disabled = false,
     required = false,
     onchange = () => {},
-    label = "Share",
+    label = "",
   }: ShareInputProps = $props();
 
   let errorMessage = $state("");

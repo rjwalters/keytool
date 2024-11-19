@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { RadioGroup } from "$components/atoms";
+  import { Button, RadioGroup } from "$components/atoms";
   import { ShamirShareInput, WalletInput } from "$components/molecules";
   import {
     createShares,
@@ -26,6 +26,16 @@
   let generatedShares = $state<ShamirShare[]>([]);
   let error = $state("");
 
+  let sharesReport: string = $derived(
+    [
+      `generated shares for ${entropy} (${minShares} of ${totalShares} scheme)\n`,
+      ...generatedShares.map(
+        (share, index) =>
+          `Share ${index + 1}: [index: ${share[0]}, entropy: ${shareValueToEntropyHex(share[1])}]`
+      ),
+    ].join("\n")
+  );
+
   // Generate shares when wallet or configuration changes
   function generateShares() {
     if (!wallet) {
@@ -45,18 +55,8 @@
         return;
       }
 
-      console.log(
-        `generating shares for ${entropy} (${min} of ${total} scheme)`
-      );
       generatedShares = createShares(wallet, min, total);
-
-      console.log(`Successfully generated ${generatedShares.length} shares:`);
-      generatedShares.forEach((share, index) => {
-        console.log(
-          `Share ${index + 1}: [index: ${share[0]}, entropy: ${shareValueToEntropyHex(share[1])}]`
-        );
-      });
-
+      console.log(sharesReport);
       error = "";
     } catch (err) {
       console.error("Error generating shares:", err);
@@ -72,6 +72,12 @@
     wallet = newWallet;
     entropy = wallet.entropy;
     generateShares();
+  }
+
+  // Simplify copyAllToClipboard() to use the derived state
+  function copyAllToClipboard() {
+    if (!wallet || generatedShares.length === 0) return;
+    navigator.clipboard.writeText(sharesReport);
   }
 </script>
 
@@ -111,8 +117,18 @@
   <!-- Generated Shares -->
   {#if generatedShares.length > 0}
     <div class="flex flex-col gap-4">
-      <h3 class="text-lg font-medium">Generated Shares</h3>
-
+      <div class="flex space-beween gap-x-8">
+        <h3 class="text-lg font-medium w-full">Generated Shares</h3>
+        <div class="w-32">
+          <Button
+            variant="secondary"
+            size="md"
+            onclick={() => generateShares()}
+          >
+            Regenerate
+          </Button>
+        </div>
+      </div>
       <div class="flex flex-col gap-4">
         {#each generatedShares as share, i}
           <ShamirShareInput
@@ -123,10 +139,21 @@
         {/each}
       </div>
 
-      <p class="text-sm text-black-60">
-        Any {minShares} of these {generatedShares.length} shares can be used to reconstruct
-        the original wallet.
-      </p>
+      <div class="flex space-beween gap-x-8">
+        <p class="text-sm text-black-60 w-full">
+          Any {minShares} of these {generatedShares.length} shares can be used to
+          reconstruct the original wallet.
+        </p>
+        <div class="w-32">
+          <Button
+            variant="secondary"
+            size="md"
+            onclick={() => copyAllToClipboard()}
+          >
+            Copy all
+          </Button>
+        </div>
+      </div>
     </div>
   {/if}
 </div>

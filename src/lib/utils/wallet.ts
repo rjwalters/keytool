@@ -145,36 +145,6 @@ function createShares(
 }
 
 /**
- * Creates self-indexing secret shares from a wallet's entropy
- * Shares encode their own position in their high bits
- * @param wallet Source wallet to share
- * @param minimum Number of shares required for reconstruction
- * @param shares Total number of shares to generate
- * @returns Array of [x,y] coordinate pairs where y high bits encode position
- */
-function createIndexedShares(
-  wallet: Wallet,
-  minimum: number,
-  shares: number,
-): ShamirShare[] {
-  if (minimum > shares) {
-    throw new Error("Pool secret would be irrecoverable.");
-  }
-  const entropyHex = wallet.entropy.startsWith("0x")
-    ? wallet.entropy.slice(2)
-    : wallet.entropy;
-
-  const shareBitLength =
-    entropyHex.length <= 32
-      ? EntropyBitLength.bits128
-      : EntropyBitLength.bits256;
-
-  const secret = ethers.toBigInt("0x" + entropyHex);
-
-  return makeIndexedShares(secret, minimum, shares, shareBitLength);
-}
-
-/**
  * Converts a BigInt value to a properly formatted entropy hex string
  * Automatically pads to either 16 or 32 bytes based on value size
  * @param value BigInt to convert
@@ -334,34 +304,6 @@ function makeRandomShares(
   }
 }
 
-/**
- * Creates shares that self-encode their index using brute force
- * Coefficients are uniformly random
- * X coordinates are consecutive integers starting at 1
- * Y coordinate high bits encode X coordinates
- */
-function makeIndexedShares(
-  secret: bigint,
-  minimum: number,
-  shares: number,
-  bitLength: EntropyBitLength,
-): ShamirShare[] {
-  while (true) {
-    let candidateShares = makeRandomShares(secret, minimum, shares, bitLength);
-
-    // Check if y-values' high bits match their indices
-    const validIndexing = candidateShares.every((share, index) => {
-      // Get the top 3 bits of the y-coordinate
-      const highBits = Number(share[1] >> (BigInt(bitLength) - 3n));
-      // Should match index + 1 (since we want to avoid 0)
-      return highBits === index + 1;
-    });
-    if (validIndexing) {
-      return candidateShares;
-    }
-  }
-}
-
 function extendedGCD(a: bigint, b: bigint): [bigint, bigint] {
   let [old_r, r] = [a, b];
   let [old_s, s] = [1n, 0n];
@@ -419,51 +361,9 @@ function lagrangeInterpolate(
   return result;
 }
 
-/**
- * Recovers a wallet from IndexedShares by extracting indices from y-value high bits
- * No x-coordinates required since position information is encoded in shares
- * @param shares Array of shares with position encoded in y-value high bits
- * @returns Reconstructed wallet
- */
-function recoverWalletFromIndexedShares(
-  requiredShares: number,
-  shares: ShamirShare[],
-): Wallet {
-  if (!Array.isArray(shares)) {
-    throw new Error("Invalid shares: must be an array");
-  }
-
-  if (shares.length === 0) {
-    throw new Error("Invalid shares: empty array");
-  }
-
-  // Check if all shares are 128-bit by examining their y-values
-  const is128Bit = shares.every((share) => {
-    const yHex = share[1].toString(16);
-    return yHex.length <= 32;
-  });
-  const bitLength = is128Bit ? 128 : 256;
-
-  const sortedShares = [...shares].sort((a, b) => (a[1] > b[1] ? 1 : -1));
-
-  // Validate that indices are sequential and valid
-  sortedShares.forEach((share, i) => {
-    const index = Number(share[1] >> (BigInt(bitLength) - 3n));
-    if (index !== i + 1) {
-      throw new Error(
-        `Invalid share index encoding: expected ${i + 1}, got ${index}`,
-      );
-    }
-  });
-
-  return recoverWalletFromShares(requiredShares, sortedShares);
-}
-
 export {
-  createIndexedShares,
   createShares,
   generateWallet,
-  recoverWalletFromIndexedShares,
   recoverWalletFromShares,
   shareValueToEntropyHex,
   walletFromEntropy,

@@ -24,6 +24,7 @@
     required?: boolean;
     displayMode?: WalletInputDisplayMode;
     hiddenModes?: WalletInputDisplayMode[];
+    showGenerationButtons?: boolean;
     onchange?: (wallet: Wallet) => void;
   }
 
@@ -34,6 +35,7 @@
     required = false,
     displayMode = "mnemonic",
     hiddenModes = [],
+    showGenerationButtons = false,
     onchange = () => {},
   }: WalletInputProps = $props();
 
@@ -166,7 +168,7 @@
       </p>
     {/if}
 
-    {#if !wallet}
+    {#if !wallet || showGenerationButtons}
       <div class="flex gap-2">
         <Button variant="primary" size="sm" onclick={() => generateSample(128)}>
           Generate 128-bit

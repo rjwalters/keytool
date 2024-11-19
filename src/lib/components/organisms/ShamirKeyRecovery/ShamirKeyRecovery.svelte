@@ -12,6 +12,7 @@
   let shares = $state<string[]>(Array(8).fill(""));
   let recoveredWallet = $state<Wallet | null>(null);
   let error = $state("");
+  let minimum = $state("3");
 
   function validateShare(entropy: string): boolean {
     return entropy.trim() !== "" && entropy.startsWith("0x");
@@ -32,7 +33,7 @@
         throw new Error("At least 2 valid shares are required");
       }
 
-      recoveredWallet = recoverWalletFromShares(validShares);
+      recoveredWallet = recoverWalletFromShares(parseInt(minimum), validShares);
       error = "";
     } catch (err) {
       console.error("Error recovering wallet:", err);

@@ -12,6 +12,7 @@
   let label = $state("Test Wallet");
   let disabled = $state(false);
   let required = $state(false);
+  let showGenerationButtons = $state(false);
   let hiddenModes = $state<WalletInputDisplayMode[]>([]);
 
   // Message display
@@ -52,7 +53,7 @@
 
 <ComponentTestFixture testedComponent="molecules/WalletInput">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full max-w-md">
+    <div class="flex flex-col gap-4 w-full">
       <!-- Label Input -->
       <Input
         label="Label Text"
@@ -64,6 +65,10 @@
       <div class="flex gap-4">
         <CheckBox bind:value={disabled} label="Disabled" />
         <CheckBox bind:value={required} label="Required" />
+        <CheckBox
+          bind:value={showGenerationButtons}
+          label="Generation Buttons"
+        />
       </div>
 
       <!-- Display Mode Controls -->
@@ -112,6 +117,7 @@
       {disabled}
       {required}
       {hiddenModes}
+      {showGenerationButtons}
       onchange={handleChange}
     />
   {/snippet}

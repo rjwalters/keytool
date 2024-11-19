@@ -39,6 +39,7 @@
 
   let activeMode = $state(displayMode);
   let wallet = $state<Wallet | null>(null);
+  let bits: number = $derived((wallet?.entropy.slice(2).length || 0) * 4);
   let errorMessage = $state("");
   let editingIndex = $state<number | null>(null);
 
@@ -208,34 +209,55 @@
   </div>
 </div>
 
+{#snippet badge(bits: number)}
+  <div
+    class={`w-14 h-6 flex items-center justify-center rounded-md ${
+      bits === 128
+        ? "border-2 border-green-100 text-green-100"
+        : "border-2 border-blue-100 text-blue-100"
+    }`}
+  >
+    <span class="text-xs font-medium">{bits} bits</span>
+  </div>
+{/snippet}
+
 <div class="w-full flex flex-row gap-2 items-start">
   {#if activeMode === "entropy"}
     <div class="w-full flex flex-row gap-2 items-center">
       <p class="pr-2 text-sm font-medium text-black-80">0x</p>
-
-      <Input
-        value={wallet?.entropy.slice(2) ?? ""}
-        label=""
-        {disabled}
-        placeholder={"Enter 16 or 32 hex bytes..."}
-        onchange={(e) => {
-          const target = e.target as HTMLInputElement;
-          handleEntropyChange(target.value);
-        }}
-      />
+      <div class="flex-1 flex items-center gap-2">
+        <Input
+          value={wallet?.entropy.slice(2) ?? ""}
+          label=""
+          {disabled}
+          placeholder="Enter 16 or 32 hex bytes..."
+          onchange={(e) => {
+            const target = e.target as HTMLInputElement;
+            handleEntropyChange(target.value);
+          }}
+        />
+        {#if wallet}
+          {@render badge(bits)}
+        {/if}
+      </div>
     </div>
   {:else if activeMode === "mnemonic"}
-    <textarea
-      class="w-full p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 resize-none"
-      class:cursor-not-allowed={disabled}
-      value={wallet?.mnemonic ?? ""}
-      readonly={disabled}
-      placeholder="Enter your 12 or 24 word mnemonic phrase..."
-      onchange={(e) => {
-        const target = e.target as HTMLTextAreaElement;
-        handleMnemonicChange(target.value);
-      }}
-    ></textarea>
+    <div class="flex-1 flex items-center gap-2">
+      <textarea
+        class="w-full p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 resize-none"
+        class:cursor-not-allowed={disabled}
+        value={wallet?.mnemonic ?? ""}
+        readonly={disabled}
+        placeholder="Enter your 12 or 24 word mnemonic phrase..."
+        onchange={(e) => {
+          const target = e.target as HTMLTextAreaElement;
+          handleMnemonicChange(target.value);
+        }}
+      ></textarea>
+      {#if wallet}
+        {@render badge(bits)}
+      {/if}
+    </div>
   {:else if activeMode === "grid"}
     <div class="w-full">
       <div class="grid grid-cols-6 gap-x-2 gap-y-1">

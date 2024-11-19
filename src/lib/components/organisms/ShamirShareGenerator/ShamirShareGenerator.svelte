@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { Button, RadioGroup } from "$components/atoms";
-  import { ShamirShareInput, WalletInput } from "$components/molecules";
+  import { Button } from "$components/atoms";
+  import {
+    ShamirSchemeSelector,
+    ShamirShareInput,
+    WalletInput,
+  } from "$components/molecules";
   import {
     createShares,
     shareValueToEntropyHex,
@@ -12,7 +16,7 @@
     label?: string;
   }
 
-  let { label = "Key" }: ShamirShareGeneratorProps = $props();
+  let { label = "Your Secret Key" }: ShamirShareGeneratorProps = $props();
 
   // Configuration options
   const minShareOptions = ["2", "3", "4", "5"];
@@ -31,7 +35,7 @@
       `generated shares for ${entropy} (${minShares} of ${totalShares} scheme)\n`,
       ...generatedShares.map(
         (share, index) =>
-          `Share ${index + 1}: [index: ${share[0]}, entropy: ${shareValueToEntropyHex(share[1])}]`
+          `Share ${index + 1}: [index: ${share[0]}, share: ${shareValueToEntropyHex(share[1])}]`
       ),
     ].join("\n")
   );
@@ -67,10 +71,14 @@
 
   // Handle wallet input changes
   function handleWalletChange(newWallet: Wallet) {
-    console.log(newWallet);
-
     wallet = newWallet;
     entropy = wallet.entropy;
+    generateShares();
+  }
+
+  function handleSchemeChange(required: number, total: number) {
+    minShares = required.toString();
+    totalShares = total.toString();
     generateShares();
   }
 
@@ -88,24 +96,7 @@
   </div>
 
   <!-- Configuration Options -->
-  <div class="flex gap-8 items-center">
-    <div class="flex-1 border border-black-20 p-3">
-      <RadioGroup
-        options={minShareOptions}
-        bind:value={minShares}
-        maxOptionsPerColumn={2}
-        onChange={(value, index) => generateShares()}
-      />
-    </div>
-    <div>of</div>
-    <div class="flex-1 border border-black-20 p-3">
-      <RadioGroup
-        options={totalShareOptions}
-        bind:value={totalShares}
-        onChange={(value, index) => generateShares()}
-      />
-    </div>
-  </div>
+  <ShamirSchemeSelector onChange={handleSchemeChange} />
 
   <!-- Error Display -->
   {#if error}

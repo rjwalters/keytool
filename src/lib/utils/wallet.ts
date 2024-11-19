@@ -10,6 +10,11 @@ interface Wallet {
   entropy: string; // The wallet's entropy as a 16 or 32-byte hex value
 }
 
+enum EntropyBitLength {
+  bits128 = 128,
+  bits256 = 256,
+}
+
 /**
  * Type representing a point in the finite field for Shamir's Secret Sharing
  * [x coordinate, y coordinate]
@@ -25,7 +30,8 @@ type ShamirShare = [bigint, bigint];
  * https://crypto.stackexchange.com/questions/107015/is-2256-297-safe-to-use-as-modulus-in-shamir-secret-sharing
  *
  */
-const PRIME = ethers.toBigInt(2) ** 256n + 297n;
+const PRIME_128 = ethers.toBigInt(2) ** 128n + 51n;
+const PRIME_256 = ethers.toBigInt(2) ** 256n + 297n;
 
 /**
  * Validates entropy input for wallet generation
@@ -38,7 +44,6 @@ function validateEntropyValue(
   if (entropy === null || entropy === undefined) {
     throw new Error("Invalid entropy: null or undefined");
   }
-
   if (typeof entropy === "string") {
     if (!entropy.startsWith("0x")) {
       throw new Error("Invalid entropy: string must start with 0x");
@@ -50,18 +55,9 @@ function validateEntropyValue(
     if (byteLength !== 16 && byteLength !== 32) {
       throw new Error("Invalid entropy: must be 16 or 32 bytes");
     }
-    // Add check for prime field maximum
-    const entropyBigInt = ethers.toBigInt(entropy);
-    if (entropyBigInt >= PRIME) {
-      throw new Error("Invalid entropy: value exceeds prime field maximum");
-    }
   } else if (entropy instanceof Uint8Array) {
     if (entropy.length !== 16 && entropy.length !== 32) {
       throw new Error("Invalid entropy: must be 16 or 32 bytes");
-    }
-    const entropyBigInt = ethers.toBigInt(ethers.hexlify(entropy));
-    if (entropyBigInt >= PRIME) {
-      throw new Error("Invalid entropy: value exceeds prime field maximum");
     }
   } else {
     throw new Error("Invalid entropy: must be hex string or Uint8Array");
@@ -134,12 +130,18 @@ function createShares(
   if (minimum > shares) {
     throw new Error("Pool secret would be irrecoverable.");
   }
-
   const entropyHex = wallet.entropy.startsWith("0x")
     ? wallet.entropy.slice(2)
     : wallet.entropy;
+
+  const shareBitLength =
+    entropyHex.length <= 32
+      ? EntropyBitLength.bits128
+      : EntropyBitLength.bits256;
+
   const secret = ethers.toBigInt("0x" + entropyHex);
-  return makeRandomShares(secret, minimum, shares);
+
+  return makeRandomShares(secret, minimum, shares, shareBitLength);
 }
 
 /**
@@ -152,17 +154,9 @@ function shareValueToEntropyHex(value: bigint): string {
   if (value < 0n) {
     throw new Error("Entropy value must be positive");
   }
-
-  // Convert to hex without '0x' prefix
-  let hexString = value.toString(16);
-
-  // Calculate actual bytes needed
-  const byteLength = Math.ceil(hexString.length / 2);
-
-  // Determine target length (16 or 32 bytes)
-  const targetLength = byteLength <= 16 ? 32 : 64;
-
-  // Pad to target length and add 0x prefix
+  const bitLength = value.toString(2).length;
+  const targetLength = bitLength <= 128 ? 32 : 64;
+  const hexString = value.toString(16);
   return `0x${hexString.padStart(targetLength, "0")}`;
 }
 
@@ -187,7 +181,14 @@ function recoverWalletFromShares(shares: ShamirShare[]): Wallet {
   const xs = shares.map((share) => share[0]);
   const ys = shares.map((share) => share[1]);
 
-  const recoveredSecret = lagrangeInterpolate(0n, xs, ys, PRIME);
+  // Check if all shares are 128-bit by examining their y-values
+  const is128Bit = shares.every((share) => {
+    const yHex = share[1].toString(16);
+    return yHex.length <= 32;
+  });
+  const prime = is128Bit ? PRIME_128 : PRIME_256;
+
+  const recoveredSecret = lagrangeInterpolate(0n, xs, ys, prime);
   return walletFromEntropy(shareValueToEntropyHex(recoveredSecret));
 }
 
@@ -224,8 +225,8 @@ function walletFromMnemonic(mnemonicPhrase: string): Wallet {
   return walletToObject(hdNode);
 }
 
-function random32Bytes(): bigint {
-  return ethers.toBigInt(ethers.hexlify(ethers.randomBytes(32)));
+function randomBytes(bytes: number): bigint {
+  return ethers.toBigInt(ethers.hexlify(ethers.randomBytes(bytes)));
 }
 
 /**
@@ -243,25 +244,29 @@ function evalAt(poly: bigint[], x: bigint, prime: bigint): bigint {
 
 /**
  * Creates random polynomial coefficients and generates shares
- * Coefficients are uniformly random in [0, PRIME-1]
+ * Coefficients are uniformly random
  * X coordinates are consecutive integers starting at 1
  */
 function makeRandomShares(
   secret: bigint,
   minimum: number,
   shares: number,
-  prime: bigint = PRIME,
+  bitLength: EntropyBitLength,
 ): ShamirShare[] {
   if (minimum > shares) {
     throw new Error("Pool secret would be irrecoverable.");
   }
 
+  const prime = bitLength === EntropyBitLength.bits128 ? PRIME_128 : PRIME_256;
+
   secret = secret % prime;
   if (secret < 0n) secret += prime;
 
+  const bytes = bitLength === EntropyBitLength.bits128 ? 16 : 32;
+
   const poly = [secret];
   for (let i = 0; i < minimum - 1; i++) {
-    poly.push(random32Bytes() % prime);
+    poly.push(randomBytes(bytes) % prime);
   }
 
   const points: ShamirShare[] = [];

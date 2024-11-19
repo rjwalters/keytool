@@ -46,6 +46,7 @@
 
 <div class="flex gap-8 items-center">
   <div class="flex-1 border border-black-20 p-3">
+    <p class="medium pb-4">Required Shares</p>
     <RadioGroup
       options={requiredSharesOptions}
       index={requiredSharesIndex}
@@ -56,10 +57,11 @@
   </div>
   <div>of</div>
   <div class="flex-1 border border-black-20 p-3">
+    <p class="medium pb-4">Total Shares</p>
     <RadioGroup
       options={totalSharesOptions}
       index={totalSharesIndex}
-      maxOptionsPerColumn={3}
+      maxOptionsPerColumn={2}
       transpose
       onChange={(value, _index) => handleTotalSharesChange(value)}
     />

@@ -210,6 +210,19 @@ describe("Wallet Utilities", () => {
           expect(typeof share[1]).toBe("bigint");
         });
       });
+
+      it.each([128, 256])(
+        "should preserve bit length for %i bit entropy",
+        (bits) => {
+          const wallet = generateWallet(bits);
+          const shares = createShares(wallet, minimum, total);
+
+          shares.forEach((share) => {
+            const hex = shareValueToEntropyHex(share[1]);
+            expect(hex.slice(2).length).toBeLessThanOrEqual(bits / 4);
+          });
+        },
+      );
     });
 
     describe("recovery", () => {

@@ -532,6 +532,5 @@ export {
   walletFromEntropy,
   walletFromMnemonic,
   type ShamirShare,
-  type Wallet
+  type Wallet,
 };
-

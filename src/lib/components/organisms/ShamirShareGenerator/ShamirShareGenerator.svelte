@@ -154,7 +154,9 @@
       <div class="flex space-beween gap-x-8">
         <p class="text-sm text-black-60 w-full">
           Any {minShares} of these {generatedShares.length} shares can be used to
-          reconstruct the original wallet.
+          reconstruct the original wallet. If you are using Standard Shares, you
+          must provide both the index and the share value. If you are using Indexed
+          Shares, the index is encoded within the share value.
         </p>
         <div class="w-32">
           <Button

@@ -36,8 +36,17 @@
     {/snippet}
 
     {#snippet tab2()}
-      <div class="max-w-2xl space-y-4">
+      <div class="space-y-4">
         <h2 class="text-xl font-semibold">About Shamir's Secret Sharing</h2>
+
+        <div class="bg-yellow-50 p-4 rounded-lg mb-6">
+          <p class="font-medium">🔑 Quick Summary:</p>
+          <ul class="list-disc pl-5 mt-2">
+            <li>Split your wallet into multiple shares</li>
+            <li>Choose how many shares are needed for recovery</li>
+            <li>Recover your wallet using those shares later</li>
+          </ul>
+        </div>
 
         <p class="text-black-80">
           Shamir's Secret Sharing is a cryptographic algorithm that allows you
@@ -48,32 +57,101 @@
           about the secret.
         </p>
 
-        <p class="text-black-80">
-          For example, you might split a wallet into 5 shares with a minimum of
-          3 required for recovery. This means you could give one share each to
-          five trusted friends or family members, and any three of them could
-          help you recover your wallet if needed. However, if two or fewer
-          shares are combined, they reveal nothing about your wallet.
-        </p>
+        <div class="bg-green-50 p-4 rounded-lg mt-4">
+          <p class="font-medium">📋 Example Scenario:</p>
+          <p class="mt-2">
+            You split your wallet into 5 shares, requiring any 3 for recovery.
+            You give one share each to five family members. If you lose access
+            to your wallet:
+          </p>
+          <ul class="list-disc pl-5 mt-2">
+            <li>Any 3 family members can help you recover it</li>
+            <li>No group of 2 or fewer can access your wallet</li>
+            <li>You can still recover if 2 shares are lost</li>
+          </ul>
+        </div>
 
         <h3 class="text-lg font-semibold mt-6 mb-2">
           Standard vs. Indexed Shares
         </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="border rounded-lg p-4">
+            <div class="h-24">
+              <h4 class="font-semibold mb-2">Standard Shares</h4>
+              <p class="text-black-80 mb-4">
+                Traditional implementation requiring both x and y coordinates
+                for recovery. Like plotting points on a graph, each share needs
+                two numbers to be useful.
+              </p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded">
+              <p class="font-medium mb-2">
+                To recover your secret key you will need:
+              </p>
+              <ul class="list-disc pl-5 space-y-2">
+                <li>
+                  Your recovery threshold "N" (how many shares are required)
+                  <div class="text-sm text-gray-600 ml-2">
+                    This sets the degree of the polynomial used in the math
+                  </div>
+                </li>
+                <li>
+                  N complete shares, each containing:
+                  <ul class="list-disc pl-5 mt-1">
+                    <li>An x-coordinate (index number)</li>
+                    <li>A y-coordinate (16 or 32 byte value)</li>
+                  </ul>
+                </li>
+                <li>
+                  The y-coordinate can be provided as either:
+                  <ul class="list-disc pl-5 mt-1">
+                    <li>Hexadecimal string (e.g., "0x123abc...")</li>
+                    <li>Mnemonic phrase (e.g., "word1 word2 word3...")</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </div>
 
-        <p class="text-black-80">
-          This tool offers two types of shares: standard and indexed. Standard
-          shares require both coordinates (x and y values) for recovery, similar
-          to points on a graph.
-        </p>
-
-        <p class="text-black-80">
-          Indexed shares are an enhanced version that cleverly encode their
-          position (x coordinate) within the least significant bits of the share
-          value itself. This means during recovery, you only need to provide the
-          share values and the tool can automatically extract the required
-          positions. This makes the recovery process more user-friendly and
-          reduces the chance of errors from mismatched coordinates.
-        </p>
+          <div class="border rounded-lg p-4">
+            <div class="h-24">
+              <h4 class="font-semibold mb-2">Indexed Shares</h4>
+              <p class="text-black-80 mb-4">
+                Enhanced version that embeds the x-coordinate in the share
+                value's least significant bits.
+              </p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded">
+              <p class="font-medium mb-2">
+                To recover your secret key you will need:
+              </p>
+              <ul class="list-disc pl-5 space-y-2">
+                <li>
+                  Your recovery threshold "N" (how many shares are required)
+                  <div class="text-sm text-gray-600 ml-2">
+                    This sets the degree of the polynomial used in the math
+                  </div>
+                </li>
+                <li>
+                  N share values, each being:
+                  <ul class="list-disc pl-5 mt-1">
+                    <li>
+                      A self-contained 16 or 32 byte value that includes its own
+                      position information
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Each share can be provided as either:
+                  <ul class="list-disc pl-5 mt-1">
+                    <li>Hexadecimal string (e.g., "0x123abc...")</li>
+                    <li>Mnemonic phrase (e.g., "word1 word2 word3...")</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
         <div class="bg-blue-20 p-4 rounded-lg mt-4">
           <h4 class="font-semibold mb-2">Why use Indexed Shares?</h4>
@@ -87,13 +165,26 @@
           </ul>
         </div>
 
+        <h3 class="text-lg font-semibold mt-6 mb-2">Technical Details</h3>
         <p class="text-black-80">
           The mathematics behind this uses polynomial interpolation in a finite
           field. Each share is a point on a polynomial curve, and the secret is
           encoded as the y-intercept (the value at x=0). This tool implements
-          the algorithm using a prime field of 2<sup>256</sup>+297 (for 256-bit
-          keys) or 2<sup>128</sup>+51 (for 128-bit keys).
+          the algorithm using:
         </p>
+        <ul class="list-disc pl-5 mt-2 space-y-1">
+          <li>Prime field of 2<sup>256</sup> + 297 for 256-bit keys</li>
+          <li>Prime field of 2<sup>128</sup> + 51 for 128-bit keys</li>
+        </ul>
+
+        <div class="bg-red-50 p-4 rounded-lg mt-6">
+          <h4 class="font-semibold mb-2">⚠️ Important Security Notes</h4>
+          <ul class="list-disc pl-5 space-y-2">
+            <li>Store shares separately and securely</li>
+            <li>Don't share with people you don't fully trust</li>
+            <li>Consider keeping a backup of your recovery threshold</li>
+          </ul>
+        </div>
 
         <div class="mt-6">
           <a

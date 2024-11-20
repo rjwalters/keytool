@@ -1,3 +1,18 @@
+<script module lang="ts">
+  export interface SharesReportShare {
+    index: string;
+    value: string; // a hex string
+    isIndexed: boolean;
+  }
+
+  export interface SharesReport {
+    entropy: string; // a hex string
+    minimum: number;
+    total: number;
+    shares: SharesReportShare[];
+  }
+</script>
+
 <script lang="ts">
   import { Button } from "$components/atoms";
   import {
@@ -8,6 +23,7 @@
   import {
     createIndexedShares,
     createShares,
+    isIndexed,
     shareValueToEntropyHex,
     type ShamirShare,
     type Wallet,
@@ -15,31 +31,22 @@
 
   export interface ShamirShareGeneratorProps {
     label?: string;
+    sharesReport?: string;
   }
 
-  let { label = "Your Secret Key" }: ShamirShareGeneratorProps = $props();
-
-  // Configuration options
-  const minShareOptions = ["2", "3", "4", "5"];
-  const totalShareOptions = ["3", "4", "5", "6", "7", "8"];
+  let {
+    label = "Your Secret Key",
+    sharesReport = $bindable(""),
+  }: ShamirShareGeneratorProps = $props();
 
   // Component state
   let wallet = $state<Wallet | null>(null);
   let entropy = $state("");
-  let minShares = $state("3");
-  let totalShares = $state("5");
+  let requiredShares = $state(3);
+  let totalShares = $state(5);
+
   let generatedShares = $state<ShamirShare[]>([]);
   let error = $state("");
-
-  let sharesReport: string = $derived(
-    [
-      `generated shares for ${entropy} (${minShares} of ${totalShares} scheme)\n`,
-      ...generatedShares.map(
-        (share, index) =>
-          `Share ${index + 1}: [index: ${share[0]}, share: ${shareValueToEntropyHex(share[1])}]`
-      ),
-    ].join("\n")
-  );
 
   // Generate shares when wallet or configuration changes
   function generateShares(
@@ -57,17 +64,26 @@
     }
 
     try {
-      const min = parseInt(minShares);
-      const total = parseInt(totalShares);
-
-      if (min > total) {
+      if (requiredShares > totalShares) {
         error = "Required shares cannot exceed total shares";
         generatedShares = [];
         return;
       }
 
-      generatedShares = makeShares(wallet, min, total);
-      console.log(sharesReport);
+      generatedShares = makeShares(wallet, requiredShares, totalShares);
+
+      const reportData: SharesReport = {
+        entropy,
+        minimum: requiredShares,
+        total: totalShares,
+        shares: generatedShares.map((share) => ({
+          index: share[0].toString(),
+          value: shareValueToEntropyHex(share[1]),
+          isIndexed: isIndexed(share),
+        })),
+      };
+
+      sharesReport = JSON.stringify(reportData, null, 2);
       error = "";
     } catch (err) {
       console.error("Error generating shares:", err);
@@ -84,8 +100,8 @@
   }
 
   function handleSchemeChange(required: number, total: number) {
-    minShares = required.toString();
-    totalShares = total.toString();
+    requiredShares = required;
+    totalShares = total;
     generateShares();
   }
 
@@ -107,67 +123,82 @@
     />
   </div>
 
-  <!-- Configuration Options -->
-  <ShamirSchemeSelector onChange={handleSchemeChange} />
+  {#if wallet}
+    <!-- Configuration Options -->
+    <ShamirSchemeSelector
+      {requiredShares}
+      {totalShares}
+      onChange={handleSchemeChange}
+    />
 
-  <!-- Error Display -->
-  {#if error}
-    <div class="text-red-100 text-sm" role="alert">
-      {error}
-    </div>
-  {/if}
-
-  <!-- Generated Shares -->
-  {#if generatedShares.length > 0}
-    <div class="flex flex-col gap-4">
-      <div class="flex space-beween gap-x-8">
-        <h3 class="text-lg font-medium w-full">Generated Shares</h3>
-        <div class="w-48">
-          <Button
-            variant="secondary"
-            size="md"
-            onclick={() => generateShares()}
-          >
-            Standard Shares
-          </Button>
-        </div>
-        <div class="w-48">
-          <Button
-            variant="secondary"
-            size="md"
-            onclick={() => generateShares(createIndexedShares)}
-          >
-            Indexed Shares
-          </Button>
-        </div>
-      </div>
+    <!-- Generated Shares -->
+    {#if generatedShares.length > 0}
       <div class="flex flex-col gap-4">
-        {#each generatedShares as share, i}
-          <ShamirShareInput
-            disabled={true}
-            shareIndex={share[0].toString()}
-            shareEntropy={shareValueToEntropyHex(share[1])}
-          />
-        {/each}
-      </div>
+        <div class="flex space-beween gap-x-8">
+          <h3 class="text-lg font-medium w-full">Generated Shares</h3>
+          <div class="w-64">
+            <Button
+              variant="secondary"
+              size="md"
+              onclick={() => generateShares()}
+            >
+              Standard Shares
+            </Button>
+          </div>
+          <div class="w-64">
+            <Button
+              variant="secondary"
+              size="md"
+              onclick={() => generateShares(createIndexedShares)}
+            >
+              Indexed Shares
+            </Button>
+          </div>
+        </div>
+        <div class="flex flex-col gap-4">
+          {#each generatedShares as share, i}
+            <ShamirShareInput
+              disabled={true}
+              shareIndex={share[0].toString()}
+              shareEntropy={shareValueToEntropyHex(share[1])}
+            />
+          {/each}
+        </div>
 
-      <div class="flex space-beween gap-x-8">
-        <p class="text-sm text-black-60 w-full">
-          Any {minShares} of these {generatedShares.length} shares can be used to
-          reconstruct the original wallet. If you are using Standard Shares, you
-          must provide both the index and the share value. If you are using Indexed
-          Shares, the index is encoded within the share value.
-        </p>
-        <div class="w-32">
-          <Button
-            variant="secondary"
-            size="md"
-            onclick={() => copyAllToClipboard()}
-          >
-            Copy all
-          </Button>
+        <div class="flex space-beween gap-x-8">
+          <p class="text-sm text-black-60 w-full">
+            Any {requiredShares} of these {generatedShares.length} shares can be
+            used to reconstruct the original wallet. If you are using Standard Shares,
+            you must provide both the index and the share value. If you are using
+            Indexed Shares, the index is encoded within the share value.
+          </p>
+          <div class="w-48">
+            <Button
+              variant="secondary"
+              size="md"
+              onclick={() => copyAllToClipboard()}
+            >
+              Copy Report
+            </Button>
+          </div>
+          <div class="w-48">
+            <Button
+              variant="secondary"
+              size="md"
+              onclick={() => console.log(sharesReport)}
+            >
+              Log Report
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    {/if}
+
+    <!-- Error Display -->
+    {#if error}
+      <div class="text-red-100 text-sm" role="alert">
+        {error}
+      </div>
+    {/if}
   {/if}
 </div>

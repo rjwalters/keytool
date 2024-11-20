@@ -1,39 +1,82 @@
 <script lang="ts">
-  import { Button } from "$components/atoms";
+  import { Button, RadioGroup } from "$components/atoms";
   import { ShamirShareInput } from "$components/molecules";
+  import type { SharesReport } from "$components/organisms";
   import {
     recoverWalletFromShares,
+    shareValueToEntropyHex,
     type ShamirShare,
     type Wallet,
   } from "$utils/wallet";
-  import { ethers } from "ethers";
 
-  // Initialize array of 8 potential shares
-  let shares = $state<string[]>(Array(8).fill(""));
+  export interface ShamirShareRecoveryProps {
+    sharesReport?: string;
+    loadFromSharesReport?: boolean;
+  }
+
+  let {
+    sharesReport = "",
+    loadFromSharesReport = $bindable(false),
+  }: ShamirShareRecoveryProps = $props();
+
+  // watch for load shares report signal and reset
+  $effect(() => {
+    if (loadFromSharesReport) {
+      console.log(`detected request to load shares report`);
+      processShareReport();
+      loadFromSharesReport = false;
+    }
+  });
+
+  const MAX_SHARES = 5;
+
+  // Initialize array of up to 5 potential shares
+  let shares = $state<ShamirShare[]>(Array(MAX_SHARES));
+
   let recoveredWallet = $state<Wallet | null>(null);
   let error = $state("");
   let minimum = $state("3");
 
-  function validateShare(entropy: string): boolean {
-    return entropy.trim() !== "" && entropy.startsWith("0x");
+  const requiredSharesOptions = ["2", "3", "4", "5"];
+  let requiredShares = $state(3);
+
+  function processShareReport() {
+    try {
+      const reportData = JSON.parse(sharesReport) as SharesReport;
+
+      requiredShares = reportData.minimum;
+
+      const reportShares = reportData.shares;
+      const selectedShares = reportShares
+        .sort(() => Math.random() - 0.5) // Shuffle
+        .slice(0, requiredShares);
+
+      shares = selectedShares.map((share) => {
+        let value = BigInt(share.value);
+
+        if (share.isIndexed) {
+          // recover share index from lowest 8 bits
+          return [value & 0xffn, value];
+        } else {
+          return [BigInt(parseInt(share.index)), value];
+        }
+      });
+
+      $inspect(shares);
+      shares.forEach((s) => {
+        console.log(s[0].toString(10), shareValueToEntropyHex(s[1]));
+      });
+
+      error = "";
+    } catch (err) {
+      console.error("Error parsing shares report:", err);
+      error = "Invalid shares report format";
+    }
   }
 
   function recoverWallet() {
     try {
-      // Filter out empty shares and convert to ShamirShare format
-      const validShares: ShamirShare[] = shares
-        .map((entropy, index) => ({
-          entropy,
-          index: index + 1,
-        }))
-        .filter((share) => validateShare(share.entropy))
-        .map((share) => [BigInt(share.index), ethers.toBigInt(share.entropy)]);
-
-      if (validShares.length < 2) {
-        throw new Error("At least 2 valid shares are required");
-      }
-
-      recoveredWallet = recoverWalletFromShares(parseInt(minimum), validShares);
+      recoveredWallet = recoverWalletFromShares(parseInt(minimum), shares);
       error = "";
     } catch (err) {
       console.error("Error recovering wallet:", err);
@@ -41,34 +84,35 @@
       recoveredWallet = null;
     }
   }
-
-  function handleShareChange(index: number, value: string) {
-    shares[index] = value;
-    shares = [...shares]; // Trigger reactivity
-    error = ""; // Clear error when input changes
-    recoveredWallet = null; // Clear recovered wallet when input changes
-  }
 </script>
 
 <div class="flex flex-col gap-6 p-4">
   <div class="flex flex-col gap-4">
-    <h3 class="text-lg font-medium">Enter Key Shares</h3>
-    <p class="text-sm text-black-60">
-      Enter at least 2 valid shares to recover your wallet. Share indices are
-      assigned automatically (1-8).
-    </p>
+    <div class="flex gap-8 items-center">
+      <div class="flex-1 border border-black-20 p-3">
+        <p class="medium pb-4">Required Shares</p>
+        <RadioGroup
+          options={requiredSharesOptions}
+          value={requiredShares.toString()}
+          maxOptionsPerColumn={2}
+          transpose
+          onChange={(value, _) => {
+            requiredShares = parseInt(value);
+          }}
+        />
+      </div>
+    </div>
 
-    {#each shares as share, i}
+    {#each shares.slice(0, requiredShares) as share}
       <div class="flex gap-4 items-center">
         <div class="flex-grow">
-          <ShamirShareInput
-            disabled={false}
-            shareIndex={(i + 1).toString()}
-            shareEntropy={share}
-            onchange={() => {
-              console.log("TODO");
-            }}
-          />
+          {#if share}
+            <ShamirShareInput
+              disabled={false}
+              shareIndex={share[0].toString(10)}
+              shareEntropy={shareValueToEntropyHex(share[1])}
+            />
+          {/if}
         </div>
       </div>
     {/each}
@@ -81,12 +125,7 @@
   {/if}
 
   <div class="flex justify-between items-center">
-    <Button
-      variant="primary"
-      size="lg"
-      onclick={recoverWallet}
-      disabled={shares.filter(validateShare).length < 2}
-    >
+    <Button variant="primary" size="lg" onclick={recoverWallet}>
       Recover Wallet
     </Button>
   </div>

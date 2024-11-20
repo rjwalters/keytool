@@ -2,45 +2,38 @@
   import { RadioGroup } from "$components/atoms";
 
   export interface ShamirSchemeSelectorProps {
+    requiredShares: number;
+    totalShares: number;
     onChange?: (requiredShares: number, totalShares: number) => void;
   }
 
   let {
+    requiredShares,
+    totalShares,
     onChange = (_requiredShares, _totalShares) => {},
   }: ShamirSchemeSelectorProps = $props();
 
-  let requiredShares = $state("3");
-  let totalShares = $state("5");
   const requiredSharesOptions = ["2", "3", "4", "5"];
   const totalSharesOptions = ["3", "4", "5", "6", "7", "8"];
 
-  let requiredSharesIndex = $state(1);
-  let totalSharesIndex = $state(2);
-
-  function handleRequiredSharesChange(newRequiredShares: string) {
-    requiredShares = newRequiredShares;
-    requiredSharesIndex = requiredSharesOptions.indexOf(requiredShares);
+  function handleRequiredSharesChange(newRequiredSharesIndex: number) {
+    requiredShares = parseInt(requiredSharesOptions[newRequiredSharesIndex]);
 
     // If new required shares would exceed total shares, adjust total shares up
-    if (parseInt(requiredShares) > parseInt(totalShares)) {
+    if (requiredShares > totalShares) {
       totalShares = requiredShares;
-      totalSharesIndex = totalSharesOptions.indexOf(totalShares);
     }
-
-    onChange(parseInt(requiredShares), parseInt(totalShares));
+    onChange(requiredShares, totalShares);
   }
 
-  function handleTotalSharesChange(newTotalShares: string) {
-    totalShares = newTotalShares;
-    totalSharesIndex = totalSharesOptions.indexOf(totalShares);
+  function handleTotalSharesChange(newTotalSharesIndex: number) {
+    totalShares = parseInt(totalSharesOptions[newTotalSharesIndex]);
 
     // If new total shares would be less than required shares, adjust required shares down
-    if (parseInt(totalShares) < parseInt(requiredShares)) {
+    if (totalShares < requiredShares) {
       requiredShares = totalShares;
-      requiredSharesIndex = requiredSharesOptions.indexOf(requiredShares);
     }
-
-    onChange(parseInt(requiredShares), parseInt(totalShares));
+    onChange(requiredShares, totalShares);
   }
 </script>
 
@@ -49,10 +42,10 @@
     <p class="medium pb-4">Required Shares</p>
     <RadioGroup
       options={requiredSharesOptions}
-      index={requiredSharesIndex}
+      value={requiredShares.toString()}
       maxOptionsPerColumn={2}
       transpose
-      onChange={(value, _index) => handleRequiredSharesChange(value)}
+      onChange={(_, index) => handleRequiredSharesChange(index)}
     />
   </div>
   <div>of</div>
@@ -60,10 +53,10 @@
     <p class="medium pb-4">Total Shares</p>
     <RadioGroup
       options={totalSharesOptions}
-      index={totalSharesIndex}
+      value={totalShares.toString()}
       maxOptionsPerColumn={2}
       transpose
-      onChange={(value, _index) => handleTotalSharesChange(value)}
+      onChange={(_, index) => handleTotalSharesChange(index)}
     />
   </div>
 </div>

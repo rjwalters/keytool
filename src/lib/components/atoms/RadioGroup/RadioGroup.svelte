@@ -2,8 +2,7 @@
   export interface RadioGroupProps {
     label?: string | null;
     options: string[];
-    value?: string | undefined;
-    index?: number | undefined;
+    value?: string;
     required?: boolean;
     letterWidthPx?: number;
     maxOptionsPerColumn?: number;
@@ -19,7 +18,6 @@
     label = null,
     options = [],
     value = $bindable(undefined),
-    index = undefined,
     required = false,
     letterWidthPx = 10,
     maxOptionsPerColumn = 5,
@@ -27,18 +25,35 @@
     onChange = (_value, _index) => {},
   }: RadioGroupProps = $props();
 
-  let selectedIndex = $state(index ?? undefined);
+  // Helper function to safely get index
+  const getIndex = (value: string | undefined): number => {
+    if (value === undefined) return -1;
+    return options.indexOf(value);
+  };
 
-  // Keep internal state in sync with external index
+  let selectedIndex: number = $state(getIndex(value));
+
+  // Keep internal state in sync with external change
   $effect(() => {
+    const index = getIndex(value);
     if (selectedIndex != index) {
+      // console.log(`detected external change to index ${index}`);
       selectedIndex = index;
     }
   });
 
+  // Handle selection change
+  const handleChange = (newValue: string, index: number) => {
+    selectedIndex = index;
+    value = newValue;
+    onChange(newValue, index);
+  };
+
   const maxStringLength = $derived(Math.max(...options.map((o) => o?.length)));
   const columnWidth = $derived(letterWidthPx * (maxStringLength + 5));
-  const groupName = $derived(options.join(""));
+  const groupName = $derived(
+    `radio-group-${options.map((o) => o.replace(/[^a-z0-9]/gi, "")).join("-")}`
+  );
 
   // Calculate optimal rows and columns based on transpose mode
   function gridDimensions(): { cols: number; rows: number } {
@@ -55,6 +70,17 @@
       return { rows, cols };
     }
   }
+
+  const error = $derived.by(() => {
+    const seen = new Set<string>();
+    for (const option of options) {
+      if (seen.has(option)) {
+        return `Duplicate option "${option}" found...`;
+      }
+      seen.add(option);
+    }
+    return null;
+  });
 </script>
 
 <div class="flex w-full flex-col">
@@ -80,10 +106,9 @@
           id={`${groupName}-${optionIndex}`}
           name={groupName}
           value={optionIndex}
-          checked={selectedIndex === optionIndex}
+          checked={optionIndex == selectedIndex}
           onchange={() => {
-            selectedIndex = optionIndex;
-            onChange(option, optionIndex);
+            handleChange(option, optionIndex);
           }}
           class="m-1"
         />
@@ -93,6 +118,12 @@
       </div>
     {/each}
   </div>
+
+  {#if error}
+    <div class="text-red-100 text-sm my-2">
+      {error}
+    </div>
+  {/if}
 </div>
 
 <style lang="postcss">

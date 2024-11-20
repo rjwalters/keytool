@@ -4,8 +4,10 @@
 
   // Display the last change
   let lastChange = $state("");
+  let requiredShares = $state(2);
+  let totalShares = $state(5);
 
-  function handleChange(requiredShares: number, totalShares: number) {
+  function handleSchemeChange(requiredShares: number, totalShares: number) {
     lastChange = `changed to ${requiredShares} of ${totalShares}`;
   }
 </script>
@@ -20,6 +22,10 @@
   {/snippet}
 
   {#snippet component()}
-    <ShamirSchemeSelector onChange={handleChange} />
+    <ShamirSchemeSelector
+      {requiredShares}
+      {totalShares}
+      onChange={handleSchemeChange}
+    />
   {/snippet}
 </ComponentTestFixture>

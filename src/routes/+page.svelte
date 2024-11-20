@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from "$components/atoms";
   import { TabContainer } from "$components/molecules";
   import {
     ShamirKeyRecovery,
@@ -15,23 +16,37 @@
     "molecules/TabContainer",
     "molecules/ShamirSchemeSelector",
   ];
+
+  let sharesReport = $state("");
+
+  let loadFromSharesReport = $state(false);
 </script>
 
 <div class="p-8">
-  <h1 class="text-3xl font-bold mb-6">Key Shares Tool</h1>
+  <h1 class="text-3xl font-bold mb-6">Key Tool</h1>
 
   <TabContainer
     tabNames={["Generate Shares", "Recover Wallet", "Learn More", "UI Tests"]}
   >
     {#snippet tab0()}
       <div>
-        <ShamirShareGenerator />
+        <ShamirShareGenerator bind:sharesReport />
       </div>
     {/snippet}
 
     {#snippet tab1()}
+      <div class="w-64">
+        <Button
+          variant="primary"
+          size="md"
+          disabled={!sharesReport}
+          onclick={() => (loadFromSharesReport = true)}
+        >
+          Load Generated Shares
+        </Button>
+      </div>
       <div>
-        <ShamirKeyRecovery />
+        <ShamirKeyRecovery {sharesReport} bind:loadFromSharesReport />
       </div>
     {/snippet}
 

@@ -4,8 +4,8 @@
 
   // State with explicit typing
   let changeMessage = $state(" ");
-  let selectedValue = $state(undefined);
-  let selectedIndex = $state(undefined);
+  let value = $state("");
+  let selectedValue: string | undefined = $state(undefined);
   let customLabel = $state("Test Radio Group");
   let isRequired = $state(false);
   let letterWidth = $state(10);
@@ -22,12 +22,10 @@
     "Option 8",
     "Option 9",
     "Option 10",
-    "Option 1",
-    "Option 2",
-    "Option 3",
   ];
 
-  function handleChange(value: string, index: number) {
+  function handleChange(newValue: string, index: number) {
+    value = newValue;
     changeMessage = `changed to "${value}" (index: ${index})`;
     setTimeout(() => {
       changeMessage = " ";
@@ -63,6 +61,16 @@
         required
       />
 
+      <!-- Value Input -->
+      <Input
+        label="Selected Value"
+        bind:value
+        onchange={() => {
+          console.log(value);
+          selectedValue = value;
+        }}
+      />
+
       <div class="flex gap-4">
         <!-- Required Toggle -->
         <CheckBox label="Required" bind:value={isRequired} variant="default" />
@@ -78,7 +86,6 @@
       <!-- Message Display -->
       <div class="flex flex-col gap-2 text-sm">
         <p>Value: {selectedValue ?? "undefined"}</p>
-        <p>Index: {selectedIndex ?? "undefined"}</p>
         <p class="h-[1.5rem]">{changeMessage || "\u00A0"}</p>
       </div>
     </div>
@@ -89,7 +96,6 @@
       label={customLabel}
       {options}
       bind:value={selectedValue}
-      index={selectedIndex}
       required={isRequired}
       letterWidthPx={letterWidth}
       maxOptionsPerColumn={maxPerColumn}

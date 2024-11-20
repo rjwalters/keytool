@@ -6,6 +6,7 @@
     WalletInput,
   } from "$components/molecules";
   import {
+    createIndexedShares,
     createShares,
     shareValueToEntropyHex,
     type ShamirShare,
@@ -41,7 +42,13 @@
   );
 
   // Generate shares when wallet or configuration changes
-  function generateShares() {
+  function generateShares(
+    makeShares: (
+      wallet: Wallet,
+      minimum: number,
+      shares: number
+    ) => ShamirShare[] = createShares
+  ) {
     if (!wallet) {
       console.error("no source wallet");
       generatedShares = [];
@@ -59,7 +66,7 @@
         return;
       }
 
-      generatedShares = createShares(wallet, min, total);
+      generatedShares = makeShares(wallet, min, total);
       console.log(sharesReport);
       error = "";
     } catch (err) {
@@ -115,13 +122,22 @@
     <div class="flex flex-col gap-4">
       <div class="flex space-beween gap-x-8">
         <h3 class="text-lg font-medium w-full">Generated Shares</h3>
-        <div class="w-32">
+        <div class="w-48">
           <Button
             variant="secondary"
             size="md"
             onclick={() => generateShares()}
           >
-            Regenerate
+            Standard Shares
+          </Button>
+        </div>
+        <div class="w-48">
+          <Button
+            variant="secondary"
+            size="md"
+            onclick={() => generateShares(createIndexedShares)}
+          >
+            Indexed Shares
           </Button>
         </div>
       </div>

@@ -253,7 +253,7 @@ function makeRandomShares(
   bitLength: EntropyBitLength,
 ): ShamirShare[] {
   if (minimum < 2) {
-    throw new Error("Required share must be >= 2");
+    throw new Error("Required shares must be >= 2");
   }
 
   if (minimum > shares) {
@@ -266,9 +266,6 @@ function makeRandomShares(
       : { prime: PRIME_256, maxValue: 1n << 256n, bytes: 32 };
 
   const { prime, maxValue, bytes } = params;
-
-  secret = secret % prime;
-  if (secret < 0n) secret += prime;
 
   // If by vanishingly small chance we calculate a small negative y coordinate, it
   // will exceed 128 or 256 bits when added to our prime. If this happens, we will
@@ -361,13 +358,180 @@ function lagrangeInterpolate(
   return result;
 }
 
+/**
+ * Creates self-indexing secret shares from a wallet's entropy
+ * Shares encode their own positions in the lowest 8 bits of the y-coordinate
+ * @param wallet Source wallet to share
+ * @param minimum Number of shares required for reconstruction
+ * @param shares Total number of shares to generate
+ * @returns Array of [x,y] coordinate pairs where y high bits encode position
+ */
+function createIndexedShares(
+  wallet: Wallet,
+  minimum: number,
+  shares: number,
+): ShamirShare[] {
+  if (minimum > shares) {
+    throw new Error("Pool secret would be irrecoverable.");
+  }
+  const entropyHex = wallet.entropy.startsWith("0x")
+    ? wallet.entropy.slice(2)
+    : wallet.entropy;
+
+  const shareBitLength =
+    entropyHex.length <= 32
+      ? EntropyBitLength.bits128
+      : EntropyBitLength.bits256;
+
+  const secret = ethers.toBigInt("0x" + entropyHex);
+
+  return makeIndexedShares(secret, minimum, shares, shareBitLength);
+}
+
+function recoverShareIndex(share: ShamirShare) {
+  return share[1] & 0xffn;
+}
+
+function isIndexed(share: ShamirShare): boolean {
+  return share[0] === recoverShareIndex(share);
+}
+
+/**
+ * Creates shares that self-encode their index through natural matching
+ * Each share's x-coordinate must match the lowest 8 bits of its y-coordinate
+ * Finding such matching points requires brute force search through polynomials
+ *
+ * We are looking for k rare (1 in 256) events in a large number (256) of independent
+ * trials, which sets us up for Poisson statistics (1/e/k!). The odds are about:
+ *
+ * 0: 0.368  (1/e)
+ * 1: 0.368  (1/e)
+ * 2: 0.184  (1/2e)
+ * 3: 0.061  (1/6e)
+ * 4: 0.015  (1/24e)
+ * 5: 0.003  (1/120e)
+ * 6: 0.0005 (1/720e)
+ * 7: 0.0001 (1/5040e)
+ * 8: 0.00001 (1/40320e)
+ */
+function makeIndexedShares(
+  secret: bigint,
+  minimum: number,
+  shares: number,
+  bitLength: EntropyBitLength,
+): ShamirShare[] {
+  if (minimum < 2) {
+    throw new Error("Required shares must be >= 2");
+  }
+  if (minimum > shares) {
+    throw new Error("Pool secret would be irrecoverable.");
+  }
+
+  const params =
+    bitLength === EntropyBitLength.bits128
+      ? { prime: PRIME_128, maxValue: 1n << 128n, bytes: 16 }
+      : { prime: PRIME_256, maxValue: 1n << 256n, bytes: 32 };
+
+  const { prime, maxValue, bytes } = params;
+
+  const maxAttempts: Record<number, number> = {
+    2: 1000, // 1/(1/2e) * 10
+    3: 3000, // 1/(1/6e) * 10
+    4: 12000, // 1/(1/24e) * 10
+    5: 60000, // 1/(1/120e) * 10
+    6: 360000, // 1/(1/720e) * 10
+    7: 2520000, // 1/(1/5040e) * 10
+    8: 20160000, // 1/(1/40320e) * 10
+  };
+
+  let attempts = 0;
+  let matches = [];
+  while (attempts < maxAttempts[shares]) {
+    // Generate one random polynomial per attempt
+    const poly = [secret];
+    for (let i = 0; i < minimum - 1; i++) {
+      poly.push(randomBytes(bytes) % prime);
+    }
+
+    const points: ShamirShare[] = [];
+
+    // Search through x-coordinates for naturally matching y-values
+    for (let i = 1; i <= 256; i++) {
+      const x = BigInt(i);
+      let y = evalAt(poly, x, prime);
+      if (y < 0n) {
+        y += prime;
+      }
+
+      // Skip y-values that exceed our bit length
+      if (y >= maxValue) {
+        continue;
+      }
+
+      // Check if y naturally encodes x in its high bits
+      if (isIndexed([x, y])) {
+        points.push([x, y]);
+        if (points.length === shares) {
+          return points;
+        }
+      }
+    }
+    matches.push(points.length);
+    attempts++;
+  }
+
+  let histogram = Array(shares)
+    .fill(0)
+    .map((_, i) => matches.filter((x) => x === i).length);
+
+  throw new Error(
+    `Failed to generate valid indexed shares after ${attempts} attempts. ${histogram}`,
+  );
+}
+
+/**
+ * Recovers a wallet from IndexedShares by extracting indices from y-value high bits
+ * No x-coordinates required since position information is encoded in shares
+ * @param shares Array of shares with position encoded in y-value high bits
+ * @returns Reconstructed wallet
+ */
+function recoverWalletFromIndexedShares(
+  requiredShares: number,
+  shares: ShamirShare[],
+): Wallet {
+  if (!Array.isArray(shares)) {
+    throw new Error("Invalid shares: must be an array");
+  }
+
+  if (shares.length === 0) {
+    throw new Error("Invalid shares: empty array");
+  }
+
+  const recoveredShares = shares.map((share) => {
+    return [recoverShareIndex(share), share[1]] as ShamirShare;
+  });
+
+  // Verify uniqueness of indices
+  const indices = new Set(recoveredShares.map((s) => s[0].toString()));
+  if (indices.size !== shares.length) {
+    throw new Error("Duplicate share indices detected");
+  }
+
+  return recoverWalletFromShares(requiredShares, recoveredShares);
+}
+
 export {
+  createIndexedShares,
   createShares,
   generateWallet,
+  isIndexed,
+  recoverShareIndex,
+  recoverWalletFromIndexedShares,
   recoverWalletFromShares,
   shareValueToEntropyHex,
   walletFromEntropy,
   walletFromMnemonic,
   type ShamirShare,
-  type Wallet,
+  type Wallet
 };
+

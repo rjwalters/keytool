@@ -1,6 +1,9 @@
 import {
+  createIndexedShares,
   createShares,
   generateWallet,
+  recoverShareIndex,
+  recoverWalletFromIndexedShares,
   recoverWalletFromShares,
   shareValueToEntropyHex,
   walletFromEntropy,
@@ -329,6 +332,202 @@ describe("Wallet Utilities", () => {
 
     it("should reject negative values", () => {
       expect(() => shareValueToEntropyHex(-1n)).toThrow();
+    });
+  });
+
+  describe("Indexed Shares", () => {
+    const TEST_ENTROPY = "0x" + "1".repeat(64);
+    const wallet = walletFromEntropy(TEST_ENTROPY);
+
+    describe("createIndexedShares", () => {
+      it("should create shares with indices encoded in high bits", () => {
+        const minimum = 3;
+        const total = 5;
+        const shares = createIndexedShares(wallet, minimum, total);
+
+        expect(shares).toHaveLength(total);
+        shares.forEach((share) => {
+          expect(recoverShareIndex(share) == share[0]);
+        });
+      });
+
+      it("should handle 128-bit entropy", () => {
+        const shorter_entropy = "0x" + "1".repeat(32);
+        const smallerWallet = walletFromEntropy(shorter_entropy);
+        const shares = createIndexedShares(smallerWallet, 3, 5);
+
+        shares.forEach((share, index) => {
+          expect(recoverShareIndex(share) == share[0]);
+          // Verify y-value doesn't exceed 128 bits
+          const yHex = share[1].toString(16);
+          expect(yHex.length).toBeLessThanOrEqual(32);
+        });
+      });
+
+      // Create arrays of minimum and total shares
+      const minShares = [2, 3, 4, 5];
+      const totalShares = [2, 3, 4, 5, 6, 7, 8];
+
+      // Generate outer product where minimum <= total
+      const testCases = minShares.flatMap((min) =>
+        totalShares
+          .filter((total) => min <= total)
+          .filter((total) => total <= 7) // computing eight indexed shares takes 60 seconds!
+          .map((total) => [min, total] as [number, number]),
+      );
+
+      it.each(testCases)(
+        "should create valid %i of %i indexed shares",
+        (minimum, total) => {
+          const shares = createIndexedShares(wallet, minimum, total);
+          expect(shares).toHaveLength(total);
+          shares.forEach((share, i) => {
+            expect(share).toHaveLength(2);
+            expect(typeof share[0]).toBe("bigint");
+            expect(typeof share[1]).toBe("bigint");
+            expect(recoverShareIndex(share) == share[0]);
+          });
+        },
+      );
+
+      it("should reliably generate indexed shares for 100 random wallets", () => {
+        for (let i = 0; i < 100; i++) {
+          const wallet = generateWallet();
+          const minimum = 2;
+          const total = 3;
+
+          // Generate and verify indexed shares
+          const shares = createIndexedShares(wallet, minimum, total);
+
+          // Basic share validation
+          expect(shares).toHaveLength(total);
+
+          // Verify each share's properties
+          shares.forEach((share, index) => {
+            // Structure checks
+            expect(share).toHaveLength(2);
+            expect(typeof share[0]).toBe("bigint");
+            expect(typeof share[1]).toBe("bigint");
+
+            // Index encoding check
+            expect(recoverShareIndex(share)).toBe(share[0]);
+          });
+
+          // Verify reconstruction works
+          const recoveredWallet = recoverWalletFromIndexedShares(
+            minimum,
+            shares.slice(0, minimum),
+          );
+          expect(recoveredWallet.entropy).toBe(wallet.entropy);
+        }
+      });
+
+      it("should reject invalid parameters", () => {
+        expect(() => createIndexedShares(wallet, 4, 3)).toThrow(
+          "Pool secret would be irrecoverable",
+        );
+        expect(() => createIndexedShares(wallet, 0, 5)).toThrow(
+          "Required shares must be >= 2",
+        );
+        expect(() => createIndexedShares(wallet, -1, 5)).toThrow(
+          "Required shares must be >= 2",
+        );
+        expect(() => createIndexedShares(wallet, 3, 0)).toThrow(
+          "Pool secret would be irrecoverable",
+        );
+      });
+    });
+
+    describe("recoverWalletFromIndexedShares", () => {
+      const minimum = 3;
+      const total = 5;
+      let indexedShares: ShamirShare[];
+
+      beforeEach(() => {
+        indexedShares = createIndexedShares(wallet, minimum, total);
+      });
+
+      it("should recover wallet from minimum indexed shares", () => {
+        const subset = indexedShares.slice(0, minimum);
+        const recovered = recoverWalletFromIndexedShares(minimum, subset);
+        expect(recovered.entropy).toBe(wallet.entropy);
+      });
+
+      it("should recover wallet with shuffled shares", () => {
+        const shuffled = [...indexedShares]
+          .slice(0, minimum)
+          .sort(() => Math.random() - 0.5);
+
+        const recovered = recoverWalletFromIndexedShares(minimum, shuffled);
+        expect(recovered.entropy).toBe(wallet.entropy);
+      });
+
+      it("should handle maximum valid entropy", () => {
+        const maxEntropy = "0x" + "f".repeat(64);
+        const maxWallet = walletFromEntropy(maxEntropy);
+        const maxShares = createIndexedShares(maxWallet, 3, 5);
+        const recovered = recoverWalletFromIndexedShares(
+          minimum,
+          maxShares.slice(0, 3),
+        );
+        expect(recovered.entropy).toBe(maxEntropy);
+      });
+
+      it("should maintain security with insufficient shares", () => {
+        const insufficientShares = indexedShares.slice(0, minimum - 1);
+        expect(() =>
+          recoverWalletFromIndexedShares(minimum, insufficientShares),
+        ).toThrow();
+      });
+
+      it("should reject empty share arrays", () => {
+        expect(() => recoverWalletFromIndexedShares(minimum, [])).toThrow(
+          "Invalid shares: empty array",
+        );
+      });
+
+      it("should reject malformed shares", () => {
+        const invalidInputs = [
+          null,
+          undefined,
+          "not an array",
+          [["not", "bigints"]],
+          [[1n, 2n, 3n]], // Wrong tuple size
+        ];
+
+        invalidInputs.forEach((invalid) => {
+          expect(() =>
+            recoverWalletFromIndexedShares(minimum, invalid as any),
+          ).toThrow();
+        });
+      });
+    });
+
+    describe("integration", () => {
+      it("should round-trip through indexed shares correctly", () => {
+        const minimum = 3;
+        const total = 5;
+
+        // Test with both 128 and 256 bit entropy
+        const entropySizes = [
+          { entropy: "0x" + "1".repeat(32), description: "128-bit" },
+          { entropy: "0x" + "1".repeat(64), description: "256-bit" },
+        ];
+
+        entropySizes.forEach(({ entropy, description }) => {
+          const originalWallet = walletFromEntropy(entropy);
+          const shares = createIndexedShares(originalWallet, minimum, total);
+          const recoveredWallet = recoverWalletFromIndexedShares(
+            minimum,
+            shares.slice(0, 3),
+          );
+
+          expect(recoveredWallet.entropy).toBe(originalWallet.entropy);
+          expect(recoveredWallet.privateKey).toBe(originalWallet.privateKey);
+          expect(recoveredWallet.mnemonic).toBe(originalWallet.mnemonic);
+          expect(recoveredWallet.addresses).toEqual(originalWallet.addresses);
+        });
+      });
     });
   });
 });

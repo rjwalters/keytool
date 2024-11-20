@@ -1,6 +1,6 @@
 <script lang="ts">
   import { WalletInput } from "$components/molecules";
-  import type { ShamirShare } from "$utils/wallet";
+  import { isIndexed, type ShamirShare } from "$utils/wallet";
 
   export interface ShareInputProps {
     shareIndex: string;
@@ -87,9 +87,12 @@
   <div class="flex gap-4 items-center">
     <!-- Index -->
     <div
-      class="w-12 flex items-center justify-center h-full font-medium text-lg"
+      class="w-12 flex flex-col items-center justify-center h-full font-medium text-lg"
     >
       {shareIndex}
+      {#if isIndexed([BigInt(shareIndex), BigInt(shareEntropy)] as ShamirShare)}
+        <p class="small">(Indexed)</p>
+      {/if}
     </div>
 
     <!-- Value Input (reusing WalletInput for hex handling) -->

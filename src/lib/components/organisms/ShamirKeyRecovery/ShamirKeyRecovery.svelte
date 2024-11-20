@@ -40,11 +40,14 @@
   const requiredSharesOptions = ["2", "3", "4", "5"];
   let requiredShares = $state(3);
 
+  let targetEntropy = $state("");
+
   function processShareReport() {
     try {
       const reportData = JSON.parse(sharesReport) as SharesReport;
 
       requiredShares = reportData.minimum;
+      targetEntropy = reportData.entropy;
 
       const reportShares = reportData.shares;
       const selectedShares = reportShares
@@ -62,7 +65,6 @@
         }
       });
 
-      $inspect(shares);
       shares.forEach((s) => {
         console.log(s[0].toString(10), shareValueToEntropyHex(s[1]));
       });
@@ -75,6 +77,7 @@
   }
 
   function recoverWallet() {
+    recoveredWallet = null;
     try {
       recoveredWallet = recoverWalletFromShares(parseInt(minimum), shares);
       error = "";
@@ -109,6 +112,7 @@
           {#if share}
             <ShamirShareInput
               disabled={false}
+              showCopyButton={false}
               shareIndex={share[0].toString(10)}
               shareEntropy={shareValueToEntropyHex(share[1])}
             />
@@ -132,20 +136,19 @@
 
   {#if recoveredWallet}
     <div class="mt-4 p-4 bg-green-10 rounded-md">
-      <h4 class="font-medium text-green-100 mb-2">
-        Wallet Successfully Recovered!
-      </h4>
-      <div class="space-y-2">
-        <p class="text-sm">
-          <span class="font-medium">Mnemonic:</span>
-          <span class="ml-2 font-mono break-all"
-            >{recoveredWallet.mnemonic}</span
-          >
-        </p>
-        <p class="text-sm">
-          <span class="font-medium">Primary Address:</span>
-          <span class="ml-2 font-mono">{recoveredWallet.addresses[0]}</span>
-        </p>
+      <div class="flex flex-col gap-2">
+        <div class="flex">
+          <div class="w-5/6">
+            <span class="ml-2 font-mono break-all"
+              >{recoveredWallet.mnemonic}</span
+            >
+          </div>
+          <div class="w-1/6">
+            {#if recoveredWallet.entropy === targetEntropy}
+              (matches generated shares)
+            {/if}
+          </div>
+        </div>
       </div>
     </div>
   {/if}

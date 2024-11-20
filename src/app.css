@@ -1,3 +1,16 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+
+p {
+  @apply text-[1rem] font-[400] leading-[1.6] text-black-80 sm:text-[1.125rem];
+}
+.medium {
+  @apply text-[1rem] font-[400] leading-[1.5] text-black-60;
+}
+.small {
+  @apply text-[0.875rem] font-[400] leading-[1.5] text-black-60;
+}
+.xsmall {
+  @apply text-[0.75rem] font-[300] leading-[1.5] text-black-60;
+}

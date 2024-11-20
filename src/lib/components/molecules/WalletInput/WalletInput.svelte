@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-  import { Button, Input } from "$components/atoms";
+  import { Badge, Button, Input } from "$components/atoms";
   import {
     generateWallet,
     walletFromEntropy,
@@ -25,6 +25,7 @@
     displayMode?: WalletInputDisplayMode;
     hiddenModes?: WalletInputDisplayMode[];
     showGenerationButtons?: boolean;
+    showCopyButton?: boolean;
     onchange?: (wallet: Wallet) => void;
   }
 
@@ -36,6 +37,7 @@
     displayMode = "mnemonic",
     hiddenModes = [],
     showGenerationButtons = false,
+    showCopyButton = true,
     onchange = () => {},
   }: WalletInputProps = $props();
 
@@ -162,11 +164,9 @@
 
 <div class="w-full flex gap-2 flex-col p-2">
   <div class="flex flex-row items-center justify-between">
-    {#if label}
-      <p class="flex-1 mb-1 text-sm font-medium text-black-80" class:required>
-        {label}
-      </p>
-    {/if}
+    <p class="flex-1 mb-1 text-sm font-medium text-black-80" class:required>
+      {label}
+    </p>
 
     {#if !wallet || showGenerationButtons}
       <div class="flex gap-2">
@@ -198,119 +198,111 @@
       {/each}
     </div>
 
-    <div class="ml-4 w-1/12">
-      <Button
-        variant="secondary"
-        size="sm"
-        onclick={copyToClipboard}
-        disabled={!wallet}
-      >
-        Copy
-      </Button>
-    </div>
+    {#if showCopyButton}
+      <div class="ml-4 w-1/12">
+        <Button
+          variant="secondary"
+          size="sm"
+          onclick={copyToClipboard}
+          disabled={!wallet}
+        >
+          Copy
+        </Button>
+      </div>
+    {/if}
   </div>
-</div>
 
-{#snippet badge(bits: number)}
-  <div
-    class={`w-14 h-6 flex items-center justify-center rounded-md ${
-      bits === 128
-        ? "border-2 border-green-100 text-green-100"
-        : "border-2 border-blue-100 text-blue-100"
-    }`}
-  >
-    <span class="text-xs font-medium">{bits} bits</span>
-  </div>
-{/snippet}
-
-<div class="w-full flex flex-row gap-2 items-start">
-  {#if activeMode === "entropy"}
-    <div class="w-full flex flex-row gap-2 items-center">
-      <p class="pr-2 text-sm font-medium text-black-80">0x</p>
+  <div class="w-full flex flex-row gap-2 items-start">
+    {#if activeMode === "entropy"}
+      <div class="w-full flex flex-row gap-2 items-center">
+        <p class="pr-2 text-sm font-medium text-black-80">0x</p>
+        <div class="flex-1 flex items-center gap-2">
+          <Input
+            value={wallet?.entropy.slice(2) ?? ""}
+            label=""
+            {disabled}
+            placeholder="Enter 16 or 32 hex bytes..."
+            onchange={(e) => {
+              const target = e.target as HTMLInputElement;
+              handleEntropyChange(target.value);
+            }}
+          />
+          {#if wallet}
+            <Badge label="{bits}b" color={bits === 128 ? "red" : "green"} />
+          {/if}
+        </div>
+      </div>
+    {:else if activeMode === "mnemonic"}
       <div class="flex-1 flex items-center gap-2">
-        <Input
-          value={wallet?.entropy.slice(2) ?? ""}
-          label=""
-          {disabled}
-          placeholder="Enter 16 or 32 hex bytes..."
+        <textarea
+          class="w-full p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 resize-none"
+          class:cursor-not-allowed={disabled}
+          value={wallet?.mnemonic ?? ""}
+          readonly={disabled}
+          placeholder="Enter your 12 or 24 word mnemonic phrase..."
           onchange={(e) => {
-            const target = e.target as HTMLInputElement;
-            handleEntropyChange(target.value);
+            const target = e.target as HTMLTextAreaElement;
+            handleMnemonicChange(target.value);
           }}
-        />
+        ></textarea>
         {#if wallet}
-          {@render badge(bits)}
+          <Badge label="{bits}b" color={bits === 128 ? "red" : "green"} />
         {/if}
       </div>
-    </div>
-  {:else if activeMode === "mnemonic"}
-    <div class="flex-1 flex items-center gap-2">
-      <textarea
-        class="w-full p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 resize-none"
-        class:cursor-not-allowed={disabled}
-        value={wallet?.mnemonic ?? ""}
-        readonly={disabled}
-        placeholder="Enter your 12 or 24 word mnemonic phrase..."
-        onchange={(e) => {
-          const target = e.target as HTMLTextAreaElement;
-          handleMnemonicChange(target.value);
-        }}
-      ></textarea>
-      {#if wallet}
-        {@render badge(bits)}
-      {/if}
-    </div>
-  {:else if activeMode === "grid"}
-    <div class="w-full">
-      <div class="grid grid-cols-6 gap-x-2 gap-y-1">
-        {#each Array(24) as _, index}
-          {@const word = wallet?.mnemonic.split(" ")[index] ?? ""}
-          {#if index < (wallet?.mnemonic.split(" ").length ?? 0)}
-            <div class="flex flex-row items-center min-w-0">
-              <span class="flex-shrink-0 w-5 text-sm text-black-60"
-                >{index + 1}:</span
-              >
-              <input
-                type="text"
-                value={word}
-                readonly={editingIndex !== index}
-                class="flex-1 min-w-0 p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 hover:bg-black-05
+    {:else if activeMode === "grid"}
+      <div class="w-full">
+        <div class="grid grid-cols-6 gap-x-2 gap-y-1">
+          {#each Array(24) as _, index}
+            {@const word = wallet?.mnemonic.split(" ")[index] ?? ""}
+            {#if index < (wallet?.mnemonic.split(" ").length ?? 0)}
+              <div class="flex flex-row items-center min-w-0">
+                <span class="flex-shrink-0 w-5 text-sm text-black-60"
+                  >{index + 1}:</span
+                >
+                <input
+                  type="text"
+                  value={word}
+                  readonly={editingIndex !== index}
+                  class="flex-1 min-w-0 p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 hover:bg-black-05
                     {editingIndex === index ? 'border-black-100' : ''}"
-                class:cursor-not-allowed={disabled}
-                onclick={() => startEditing(index, word)}
-                onkeydown={(e) => handleKeyDown(e, index, word)}
-                onchange={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  handleWordEdit(index, target.value);
-                }}
-              />
-            </div>
-          {/if}
-        {/each}
+                  class:cursor-not-allowed={disabled}
+                  onclick={() => startEditing(index, word)}
+                  onkeydown={(e) => handleKeyDown(e, index, word)}
+                  onchange={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    handleWordEdit(index, target.value);
+                  }}
+                />
+              </div>
+            {/if}
+          {/each}
+        </div>
       </div>
-    </div>
-  {:else if activeMode === "addresses"}
-    <div class="w-full">
-      <div class="flex flex-col gap-2">
-        {#each wallet?.addresses ?? [] as address, index}
-          <div class="flex flex-row items-center gap-2">
-            <span class="flex-shrink-0 w-24 text-sm text-black-60">
-              m/44'/60'/0'/0/{index}:
-            </span>
-            <div
-              class="flex-1 p-2 border-2 border-black-40 rounded text-sm bg-white-100 font-mono"
-            >
-              {address}
+    {:else if activeMode === "addresses"}
+      <div class="w-full">
+        <div class="flex flex-col gap-2">
+          {#each wallet?.addresses ?? [] as address, index}
+            <div class="flex flex-row items-center gap-2">
+              <span class="flex-shrink-0 w-24 text-sm text-black-60">
+                m/44'/60'/0'/0/{index}:
+              </span>
+              <div
+                class="flex-1 p-2 border-2 border-black-40 rounded text-sm bg-white-100 font-mono"
+              >
+                {address}
+              </div>
             </div>
-          </div>
-        {/each}
+          {/each}
+        </div>
       </div>
-    </div>
-  {/if}
+    {/if}
 
-  {#if errorMessage}
-    <p class="w-full mt-1 text-sm text-red-100" role="alert">{errorMessage}</p>
-  {/if}
+    {#if errorMessage}
+      <p class="w-full mt-1 text-sm text-red-100" role="alert">
+        {errorMessage}
+      </p>
+    {/if}
+  </div>
 </div>
 
 <style lang="postcss">

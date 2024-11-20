@@ -11,6 +11,7 @@
     "atoms/CheckBox",
     "atoms/Input",
     "atoms/RadioGroup",
+    "atoms/Badge",
     "molecules/WalletInput",
     "molecules/ShamirShareInput",
     "molecules/TabContainer",

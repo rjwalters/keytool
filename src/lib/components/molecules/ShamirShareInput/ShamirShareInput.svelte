@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Badge } from "$components/atoms";
   import { WalletInput } from "$components/molecules";
   import { isIndexed, type ShamirShare } from "$utils/wallet";
 
@@ -7,6 +8,7 @@
     shareEntropy: string;
     disabled?: boolean;
     required?: boolean;
+    showCopyButton?: boolean;
     onchange?: (share: ShamirShare | undefined) => void;
     label?: string;
   }
@@ -16,6 +18,7 @@
     shareEntropy = $bindable(""),
     disabled = false,
     required = false,
+    showCopyButton = true,
     onchange = () => {},
     label = "",
   }: ShareInputProps = $props();
@@ -75,31 +78,36 @@
       onchange(undefined);
     }
   });
+
+  let shareIsIndexed: boolean = $derived(
+    isIndexed([BigInt(shareIndex), BigInt(shareEntropy)] as ShamirShare)
+  );
 </script>
 
-<div class="flex flex-col gap-2">
-  {#if label}
-    <p class="text-sm font-medium text-black-80" class:required>
-      {label}
-    </p>
-  {/if}
-
-  <div class="flex gap-4 items-center">
+<div class="flex flex-col gap-2 border border-black-10">
+  <div class="flex pl-2">
     <!-- Index -->
-    <div
-      class="w-12 flex flex-col items-center justify-center h-full font-medium text-lg"
-    >
-      {shareIndex}
-      {#if isIndexed([BigInt(shareIndex), BigInt(shareEntropy)] as ShamirShare)}
-        <p class="small">(Indexed)</p>
-      {/if}
+    <div class="flex flex-col justify-around">
+      <p class="text-sm font-medium text-black-80" class:required>
+        {label || " "}
+      </p>
+
+      <div class="flex flex-col items-center gap-2">
+        <p class="small">[ {shareIndex} ]</p>
+        {#if shareIsIndexed}
+          <Badge label="Indexed" color="blue" />
+        {:else}
+          <Badge label="Standard" color="orange" />
+        {/if}
+      </div>
     </div>
 
     <!-- Value Input (reusing WalletInput for hex handling) -->
-    <div class="flex-1 border border-black-10 p-2">
+    <div class="flex-1">
       <WalletInput
         bind:entropy={shareEntropy}
         {disabled}
+        {showCopyButton}
         hiddenModes={["addresses"]}
       />
     </div>

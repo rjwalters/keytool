@@ -13,6 +13,7 @@
   let disabled = $state(false);
   let required = $state(false);
   let showGenerationButtons = $state(false);
+  let showCopyButton = $state(false);
   let hiddenModes = $state<WalletInputDisplayMode[]>([]);
 
   // Message display
@@ -69,6 +70,7 @@
           bind:value={showGenerationButtons}
           label="Generation Buttons"
         />
+        <CheckBox bind:value={showCopyButton} label="Copy Button" />
       </div>
 
       <!-- Display Mode Controls -->
@@ -118,6 +120,7 @@
       {required}
       {hiddenModes}
       {showGenerationButtons}
+      {showCopyButton}
       onchange={handleChange}
     />
   {/snippet}

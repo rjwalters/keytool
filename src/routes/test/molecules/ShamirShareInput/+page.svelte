@@ -2,14 +2,20 @@
   import { Button, CheckBox, Input } from "$components/atoms";
   import { ShamirShareInput } from "$components/molecules";
   import { ComponentTestFixture } from "$components/routes/test";
-  import type { ShamirShare } from "$utils/wallet";
+  import { recoverShareIndex, type ShamirShare } from "$utils/wallet";
 
   // State management
-  let shareIndex = $state("");
+  let shareIndex: number | undefined = $state(undefined);
   let shareEntropy = $state("");
   let label = $state("Test Share");
   let disabled = $state(false);
   let required = $state(false);
+  let isIndexed = $state(false);
+
+  let share: ShamirShare = $derived([
+    BigInt(shareIndex || 0),
+    BigInt(shareEntropy),
+  ]);
 
   // Message display
   let changeMessage = $state("");
@@ -27,17 +33,22 @@
 
   // Generate sample share
   function generateSample(bits: number) {
-    // Generate a random index between 1 and 10
-    shareIndex = (Math.floor(Math.random() * 10) + 1).toString();
-
     // Generate a random value with the specified number of bits
     const valueBytes = new Uint8Array(bits / 8);
     crypto.getRandomValues(valueBytes);
+
     shareEntropy =
       "0x" +
       Array.from(valueBytes)
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
+
+    if (!isIndexed) {
+      // Generate a random index between 1 and 10
+      shareIndex = Math.floor(Math.random() * 10) + 1;
+    } else {
+      shareIndex = Number(recoverShareIndex(share));
+    }
   }
 
   // Display the formatted share value
@@ -62,6 +73,7 @@
       <div class="flex gap-4">
         <CheckBox bind:value={disabled} label="Disabled" />
         <CheckBox bind:value={required} label="Required" />
+        <CheckBox bind:value={isIndexed} label="Indexed Share" />
       </div>
 
       <!-- Sample Generator -->
@@ -109,12 +121,13 @@
 
   {#snippet component()}
     <ShamirShareInput
-      {shareIndex}
+      bind:isIndexed
+      bind:shareIndex
       bind:shareEntropy
       {label}
       {disabled}
       {required}
-      onchange={handleChange}
+      onChange={handleChange}
     />
   {/snippet}
 </ComponentTestFixture>

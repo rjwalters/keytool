@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { BadgeColor, BadgeSize } from "$components/atoms";
-  import { Badge, Input, RadioGroup } from "$components/atoms";
+  import { Badge, CheckBox, Input, RadioGroup } from "$components/atoms";
   import { ComponentTestFixture } from "$components/routes/test";
 
   // State management
   let label = $state("1");
   let color: BadgeColor = $state("green");
   let size: BadgeSize = $state("sm");
+  let disabled = $state(false);
 
   // Options for RadioGroup components
   const colorOptions: BadgeColor[] = ["red", "green", "blue", "orange"];
@@ -22,6 +23,9 @@
         bind:value={label}
         placeholder="Enter badge text"
       />
+
+      <!-- Disabled State -->
+      <CheckBox label="Disabled" bind:value={disabled} variant="default" />
 
       <!-- Color Selection -->
       <RadioGroup
@@ -45,6 +49,6 @@
   {/snippet}
 
   {#snippet component()}
-    <Badge {color} {size} {label} />
+    <Badge {disabled} {color} {size} {label} />
   {/snippet}
 </ComponentTestFixture>

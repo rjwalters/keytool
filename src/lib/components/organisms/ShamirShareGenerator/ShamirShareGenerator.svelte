@@ -159,7 +159,7 @@
           {#each generatedShares as share, i}
             <ShamirShareInput
               disabled={true}
-              shareIndex={share[0].toString()}
+              shareIndex={parseInt(share[0].toString(10))}
               shareEntropy={shareValueToEntropyHex(share[1])}
             />
           {/each}

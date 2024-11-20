@@ -38,7 +38,7 @@
     hiddenModes = [],
     showGenerationButtons = false,
     showCopyButton = true,
-    onchange = () => {},
+    onchange = (_wallet) => {},
   }: WalletInputProps = $props();
 
   let activeMode = $state(displayMode);
@@ -214,8 +214,8 @@
 
   <div class="w-full flex flex-row gap-2 items-start">
     {#if activeMode === "entropy"}
-      <div class="w-full flex flex-row gap-2 items-center">
-        <p class="pr-2 text-sm font-medium text-black-80">0x</p>
+      <div class="w-full flex flex-row items-center">
+        <p class="p-2 text-sm font-medium text-black-80">0x</p>
         <div class="flex-1 flex items-center gap-2">
           <Input
             value={wallet?.entropy.slice(2) ?? ""}
@@ -296,7 +296,8 @@
         </div>
       </div>
     {/if}
-
+  </div>
+  <div class="w-full flex flex-row gap-2 items-start">
     {#if errorMessage}
       <p class="w-full mt-1 text-sm text-red-100" role="alert">
         {errorMessage}

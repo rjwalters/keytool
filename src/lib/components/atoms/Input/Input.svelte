@@ -5,7 +5,7 @@
 
   export interface InputProps
     extends Omit<HTMLInputAttributes, "size" | "type"> {
-    value: string | number;
+    value: string | number | undefined;
     variant?: InputVariant;
     label?: string;
     error?: string;
@@ -14,7 +14,7 @@
 
 <script lang="ts">
   let {
-    value = $bindable(""),
+    value = $bindable(undefined),
     variant = "text",
     label = "",
     placeholder = "",

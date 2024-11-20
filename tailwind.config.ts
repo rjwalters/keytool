@@ -52,7 +52,12 @@ export default {
       },
       purple: {
         100: "rgba(207, 63, 242, 1.0)",
+        10: "rgba(207, 63, 242, 0.1)",
         "08": "rgba(21, 6, 24, 0.8)",
+      },
+      yellow: {
+        100: "rgba(255, 193, 7, 1.0)", // Bright yellow
+        10: "rgba(255, 193, 7, 0.1)",
       },
       blue: {
         100: "#3B82F6", // Vibrant primary blue

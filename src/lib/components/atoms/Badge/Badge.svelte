@@ -1,16 +1,33 @@
 <script module lang="ts">
-  export type BadgeColor = "red" | "green" | "blue" | "orange";
+  export type BadgeColor =
+    | "black"
+    | "red"
+    | "green"
+    | "blue"
+    | "orange"
+    | "yellow"
+    | "purple";
   export type BadgeSize = "sm" | "md" | "lg";
 
   export interface BadgeProps {
     color?: BadgeColor;
     size?: BadgeSize;
     label: string;
+    disabled?: boolean;
+    onClick?: (event: MouseEvent | KeyboardEvent) => void;
   }
 </script>
 
 <script lang="ts">
-  let { color = "green", size = "sm", label = "?" }: BadgeProps = $props();
+  import { isAriaIntent } from "$utils/aria";
+
+  let {
+    color = "green",
+    size = "sm",
+    label = "?",
+    disabled = false,
+    onClick = (_e) => {},
+  }: BadgeProps = $props();
 
   const sizeClasses: Record<BadgeSize, string> = {
     sm: "w-min-10 text-xs rounded-md !h-6",
@@ -19,10 +36,13 @@
   };
 
   const colorClasses: Record<BadgeColor, string> = {
+    black: "border-black-100 text-black-100",
     red: "border-red-100 text-red-100",
     green: "border-green-100 text-green-100",
     blue: "border-blue-100 text-blue-100",
     orange: "border-orange-100 text-orange-100",
+    yellow: "border-yellow-100 text-yellow-100",
+    purple: "border-purple-100 text-purple-100",
   };
 
   // Derive classes using $derived
@@ -31,11 +51,33 @@
     items-center
     justify-center
     border-2
-    ${sizeClasses[size]}
+    ${sizeClasses[size]}   
     ${colorClasses[color]}
+    ${disabled ? "cursor-not-allowed" : "cursor-pointer hover:opacity-80"}
+    transition-opacity duration-200
   `);
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (!disabled && isAriaIntent(e)) {
+      onClick(e);
+    }
+  }
+
+  function handleClick(e: MouseEvent) {
+    if (!disabled) {
+      onClick(e);
+    }
+  }
 </script>
 
-<div class={classes}>
+<div
+  role="button"
+  tabindex="0"
+  aria-label={label}
+  aria-disabled={disabled}
+  class={classes}
+  onclick={handleClick}
+  onkeydown={handleKeyDown}
+>
   <span class="font-semibold px-2">{label}</span>
 </div>

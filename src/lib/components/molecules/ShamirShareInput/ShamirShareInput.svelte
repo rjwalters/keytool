@@ -1,27 +1,34 @@
 <script lang="ts">
-  import { Badge } from "$components/atoms";
+  import { Badge, Input } from "$components/atoms";
   import { WalletInput } from "$components/molecules";
-  import { isIndexed, type ShamirShare } from "$utils/wallet";
+  import { type ShamirShare, recoverShareIndex } from "$utils/wallet";
 
   export interface ShareInputProps {
-    shareIndex: string;
+    shareIndex: number | undefined;
     shareEntropy: string;
+    isIndexed?: boolean;
     disabled?: boolean;
     required?: boolean;
     showCopyButton?: boolean;
-    onchange?: (share: ShamirShare | undefined) => void;
+    onChange?: (share: ShamirShare | undefined) => void;
     label?: string;
   }
 
   let {
-    shareIndex = "",
+    shareIndex = $bindable(undefined),
     shareEntropy = $bindable(""),
+    isIndexed = $bindable(false),
     disabled = false,
     required = false,
     showCopyButton = true,
-    onchange = () => {},
+    onChange = () => {},
     label = "",
   }: ShareInputProps = $props();
+
+  let share: ShamirShare = $derived([
+    BigInt(shareIndex || 0),
+    BigInt(shareEntropy),
+  ]);
 
   let errorMessage = $state("");
 
@@ -49,56 +56,61 @@
   $effect(() => {
     try {
       errorMessage = "";
+      if (isIndexed) {
+        shareIndex = Number(recoverShareIndex(share));
+      }
 
-      // Only create share if we have both values
-      if (shareIndex && shareEntropy) {
+      if (shareIndex !== undefined && shareEntropy) {
         // Validate the shareIndex is a positive integer
-        const x = BigInt(shareIndex);
-        if (x <= 0n) {
-          errorMessage = "Index must be positive";
-          onchange(undefined);
+        if (shareIndex < 1) {
+          errorMessage = "Share index must be >=1";
+          onChange(undefined);
           return;
         }
 
-        // Validate the value
+        // Validate the share entropy
         if (!validateShareEntropy(shareEntropy)) {
-          onchange(undefined);
+          onChange(undefined);
           return;
         }
-
-        const y = BigInt(shareEntropy);
-        const newShare: ShamirShare = [x, y];
-        onchange(newShare);
+        console.log(share);
+        onChange(share);
       } else {
-        onchange(undefined);
+        onChange(undefined);
       }
     } catch (err) {
       console.error("Error updating share:", err);
       errorMessage = err instanceof Error ? err.message : "Invalid share";
-      onchange(undefined);
+      onChange(undefined);
     }
   });
-
-  let shareIsIndexed: boolean = $derived(
-    isIndexed([BigInt(shareIndex), BigInt(shareEntropy)] as ShamirShare)
-  );
 </script>
 
 <div class="flex flex-col gap-2 border border-black-10">
   <div class="flex pl-2">
     <!-- Index -->
     <div class="flex flex-col justify-around">
-      <p class="text-sm font-medium text-black-80" class:required>
-        {label || " "}
-      </p>
-
-      <div class="flex flex-col items-center gap-2">
-        <p class="small">[ {shareIndex} ]</p>
-        {#if shareIsIndexed}
-          <Badge label="Indexed" color="blue" />
+      <div class="flex flex-col items-center gap-2 w-20">
+        {#if isIndexed}
+          <Badge
+            label="Indexed"
+            color="blue"
+            {disabled}
+            onClick={(_e) => (isIndexed = false)}
+          />
         {:else}
-          <Badge label="Standard" color="orange" />
+          <Badge
+            label="Standard"
+            color="black"
+            {disabled}
+            onClick={(_e) => (isIndexed = true)}
+          />
         {/if}
+        <Input
+          bind:value={shareIndex}
+          disabled={isIndexed || disabled}
+          variant="number"
+        />
       </div>
     </div>
 
@@ -106,6 +118,8 @@
     <div class="flex-1">
       <WalletInput
         bind:entropy={shareEntropy}
+        {label}
+        {required}
         {disabled}
         {showCopyButton}
         hiddenModes={["addresses"]}
@@ -117,9 +131,3 @@
     <p class="text-sm text-red-100" role="alert">{errorMessage}</p>
   {/if}
 </div>
-
-<style lang="postcss">
-  .required {
-    @apply after:ml-0.5 after:text-red-100 after:content-['*'];
-  }
-</style>

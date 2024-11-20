@@ -22,7 +22,7 @@
   // watch for load shares report signal and reset
   $effect(() => {
     if (loadFromSharesReport) {
-      console.log(`detected request to load shares report`);
+      // console.log(`detected request to load shares report`);
       processShareReport();
       loadFromSharesReport = false;
     }
@@ -65,10 +65,6 @@
         }
       });
 
-      shares.forEach((s) => {
-        console.log(s[0].toString(10), shareValueToEntropyHex(s[1]));
-      });
-
       error = "";
     } catch (err) {
       console.error("Error parsing shares report:", err);
@@ -77,14 +73,30 @@
   }
 
   function recoverWallet() {
-    recoveredWallet = null;
     try {
+      console.log("recovering wallet");
+      shares.forEach((s) => {
+        console.log(s[0].toString(10), shareValueToEntropyHex(s[1]));
+      });
       recoveredWallet = recoverWalletFromShares(parseInt(minimum), shares);
+      let matchesTargetEntropy = recoveredWallet.entropy == targetEntropy;
+      console.log(
+        `recovered entropy: ${recoveredWallet.entropy} ${matchesTargetEntropy ? "(matches target)" : "DOES NOT MATCH TARGET!"}`
+      );
       error = "";
     } catch (err) {
       console.error("Error recovering wallet:", err);
       error = err instanceof Error ? err.message : "Failed to recover wallet";
       recoveredWallet = null;
+    }
+  }
+
+  function handleShareChange(index: number, share: ShamirShare | undefined) {
+    if (share) {
+      console.log(
+        `updated share ${index} to [${share[0].toString(10)},${shareValueToEntropyHex(share[1])}]`
+      );
+      shares[index] = share;
     }
   }
 </script>
@@ -106,15 +118,16 @@
       </div>
     </div>
 
-    {#each shares.slice(0, requiredShares) as share}
+    {#each shares.slice(0, requiredShares) as share, index}
       <div class="flex gap-4 items-center">
         <div class="flex-grow">
           {#if share}
             <ShamirShareInput
               disabled={false}
               showCopyButton={false}
-              shareIndex={share[0].toString(10)}
+              shareIndex={parseInt(share[0].toString(10))}
               shareEntropy={shareValueToEntropyHex(share[1])}
+              onChange={(share) => handleShareChange(index, share)}
             />
           {/if}
         </div>
@@ -135,7 +148,11 @@
   </div>
 
   {#if recoveredWallet}
-    <div class="mt-4 p-4 bg-green-10 rounded-md">
+    <div
+      class="mt-4 p-4 rounded-md"
+      class:bg-green-10={recoveredWallet.entropy === targetEntropy}
+      class:bg-black-10={recoveredWallet.entropy !== targetEntropy}
+    >
       <div class="flex flex-col gap-2">
         <div class="flex">
           <div class="w-5/6">
@@ -146,6 +163,8 @@
           <div class="w-1/6">
             {#if recoveredWallet.entropy === targetEntropy}
               (matches generated shares)
+            {:else}
+              DOES NOT MATCH GENERATED SHARES
             {/if}
           </div>
         </div>

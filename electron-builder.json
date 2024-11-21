@@ -5,11 +5,7 @@
     "output": "dist",
     "buildResources": "icons"
   },
-  "files": [
-    "build/**/*",
-    "electron/**/*",
-    "node_modules/electron-squirrel-startup/**/*"
-  ],
+  "files": ["build/**/*", "node_modules/electron-squirrel-startup/**/*"],
   "asar": true,
   "npmRebuild": false,
   "nodeGypRebuild": false,
@@ -27,6 +23,6 @@
     "icon": "icons/icon.png"
   },
   "extraMetadata": {
-    "main": "electron/main.js"
+    "main": "build/main.js"
   }
 }

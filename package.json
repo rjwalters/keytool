@@ -1,9 +1,8 @@
 {
-  "name": "keytool",
+  "name": "@rjwalters/keytool",
   "version": "0.0.1",
   "type": "module",
   "description": "Basic key shares tool",
-  "main": "electron/main.js",
   "author": {
     "name": "Robb Walters",
     "url": "https://github.com/rjwalters"
@@ -14,19 +13,25 @@
     "url": "git+https://github.com/rjwalters/keytool.git"
   },
   "scripts": {
-    "start": "cross-env NODE_ENV=production vite build && cross-env NODE_ENV=production electron .",
-    "electron-dev": "NODE_ENV=development concurrently \"vite dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "make": "cross-env NODE_ENV=production npm run build && electron-builder build --mac --win --linux",
-    "make-dir": "cross-env NODE_ENV=production npm run build && electron-builder build --mac --dir",
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "dev": "npm run dev:web",
+    "dev:web": "vite dev",
+    "dev:electron": "NODE_ENV=development concurrently \"vite dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "npm-run-all build:*",
+    "build:web": "vite build",
+    "build:electron": "tsc -p electron",
+    "start": "npm-run-all build:* && cross-env NODE_ENV=production electron .",
+    "make": "npm-run-all build:* && npm run package",
+    "make:dir": "npm-run-all build:* && npm run package:dir",
+    "package": "electron-builder build --mac --win --linux",
+    "package:dir": "electron-builder build --mac --dir",
+    "check": "npm-run-all check:*",
+    "check:types": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "lint": "npm-run-all lint:*",
+    "lint:format": "prettier --check .",
+    "lint:js": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "lint": "prettier --check . && eslint .",
-    "lint-fix": "eslint . --fix",
-    "ncu": "npx npm-check-updates -i",
+    "update": "npx npm-check-updates -i",
     "test": "jest"
   },
   "devDependencies": {
@@ -48,6 +53,7 @@
     "eslint-plugin-svelte": "^2.46.0",
     "globals": "^15.12.0",
     "jest": "^29.7.0",
+    "npm-run-all": "^4.1.5",
     "prettier": "^3.3.3",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-svelte": "^3.2.8",
@@ -66,5 +72,6 @@
     "electron-serve": "^2.1.1",
     "electron-squirrel-startup": "^1.0.1",
     "ethers": "^6.13.4"
-  }
+  },
+  "main": "build/main.js"
 }

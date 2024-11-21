@@ -4,17 +4,15 @@ const fs = require("fs");
 
 const isDev = process.env.NODE_ENV === "development";
 
-// Debug environment setup
-console.log("Environment Setup:", {
-  NODE_ENV: process.env.NODE_ENV,
-  isDev: process.env.NODE_ENV === "development",
-  cwd: process.cwd(),
-  dirname: __dirname,
-});
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require("electron-squirrel-startup")) {
-  app.quit();
+// Only use electron-squirrel-startup in production on Windows
+if (process.platform === "win32" && !isDev) {
+  try {
+    if (require("electron-squirrel-startup")) {
+      app.quit();
+    }
+  } catch (e) {
+    console.log("Not running in Squirrel mode");
+  }
 }
 
 function createWindow() {
@@ -42,37 +40,32 @@ function createWindow() {
     },
   );
 
-  const indexPath = path.join(__dirname, "..", "build", "index.html");
-  console.log("Current directory (__dirname):", __dirname);
-  console.log("Attempting to load index from:", indexPath);
+  // In production, use app.getAppPath() instead of process.cwd()
+  const appPath = isDev ? process.cwd() : app.getAppPath();
+  const indexPath = path.join(appPath, "build", "index.html");
 
-  // Check if files/directories exist
-  console.log(
-    "Build directory exists:",
-    fs.existsSync(path.join(__dirname, "..", "build")),
-  );
-  console.log("index.html exists:", fs.existsSync(indexPath));
+  console.log("Environment Setup:", {
+    NODE_ENV: process.env.NODE_ENV,
+    isDev: process.env.NODE_ENV === "development",
+    cwd: process.cwd(),
+    appPath,
+    dirname: __dirname,
+    indexPath,
+    buildDir: fs.readdirSync(path.join(process.cwd(), "build")),
+    appDir: fs.readdirSync(
+      path.join(process.cwd(), "build", "_app", "immutable"),
+    ),
+  });
 
   if (isDev) {
     console.log("Development mode: Loading from localhost:5173");
     mainWindow.loadURL("http://localhost:5173");
+    win.webContents.openDevTools();
   } else {
-    const indexPath = path.join(process.cwd(), "build", "index.html");
-
-    console.log("Production mode:", {
-      loading: indexPath,
-      exists: fs.existsSync(indexPath),
-      buildDir: fs.readdirSync(path.join(process.cwd(), "build")),
-      appDir: fs.readdirSync(
-        path.join(process.cwd(), "build", "_app", "immutable"),
-      ),
-    });
-
     //mainWindow.loadURL(`file://${indexPath}`);
     mainWindow.loadFile(indexPath);
   }
 
-  // Debug
   mainWindow.webContents.on(
     "did-fail-load",
     (event, errorCode, errorDescription, validatedURL) => {
@@ -83,7 +76,7 @@ function createWindow() {
         indexPath,
         currentDir: __dirname,
         cwd: process.cwd(),
-        buildPath: path.join(process.cwd(), "build"),
+        buildPath: path.join(appPath, "build"),
       });
     },
   );
@@ -94,14 +87,11 @@ app.whenReady().then(() => {
     try {
       const requestUrl = new URL(request.url);
       let filePath = decodeURIComponent(requestUrl.pathname);
+      const appPath = isDev ? process.cwd() : app.getAppPath();
 
       if (filePath.startsWith("/_app/")) {
         // Handle _app resources
-        filePath = path.join(
-          process.cwd(),
-          "build",
-          filePath.replace(/^\/+/, ""),
-        );
+        filePath = path.join(appPath, "build", filePath.replace(/^\/+/, ""));
       }
 
       console.log("Protocol handler resolved:", {

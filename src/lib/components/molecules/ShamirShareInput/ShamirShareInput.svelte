@@ -61,7 +61,7 @@
   <div class="flex pl-2">
     <!-- Index -->
     <div class="flex flex-col justify-around">
-      <div class="flex flex-col items-center gap-2 w-20">
+      <div class="flex w-20 flex-col items-center gap-2">
         <Badge
           label={isIndexed ? "Indexed" : "Standard"}
           color={isIndexed ? "blue" : "black"}
@@ -70,7 +70,7 @@
             share = ShamirShare.create(
               share?.index,
               share?.entropyHex,
-              !isIndexed
+              !isIndexed,
             );
             onChange(share);
           }}

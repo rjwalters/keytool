@@ -14,7 +14,7 @@
 
 <ComponentTestFixture testedComponent="molecules/ShamirSchemeSelector">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full">
+    <div class="flex w-full flex-col gap-4">
       <div class="text-sm text-blue-100">
         {lastChange || " "}
       </div>

@@ -79,5 +79,5 @@
   onclick={handleClick}
   onkeydown={handleKeyDown}
 >
-  <span class="font-semibold px-2">{label}</span>
+  <span class="px-2 font-semibold">{label}</span>
 </div>

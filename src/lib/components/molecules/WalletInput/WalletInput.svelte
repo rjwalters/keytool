@@ -51,7 +51,7 @@
   $effect(() => {
     if (hiddenModes.includes(activeMode)) {
       const availableModes = modes.filter(
-        (mode) => !hiddenModes.includes(mode.id)
+        (mode) => !hiddenModes.includes(mode.id),
       );
       if (availableModes.length > 0) {
         activeMode = availableModes[0].id;
@@ -152,7 +152,7 @@
   ];
 
   const visibleModes = $derived(
-    modes.filter((mode) => !hiddenModes.includes(mode.id))
+    modes.filter((mode) => !hiddenModes.includes(mode.id)),
   );
 
   function generateSample(bits: number) {
@@ -162,9 +162,9 @@
   }
 </script>
 
-<div class="w-full flex gap-2 flex-col p-2">
+<div class="flex w-full flex-col gap-2 p-2">
   <div class="flex flex-row items-center justify-between">
-    <p class="flex-1 mb-1 text-sm font-medium text-black-80" class:required>
+    <p class="mb-1 flex-1 text-sm font-medium text-black-80" class:required>
       {label}
     </p>
 
@@ -179,7 +179,7 @@
       </div>
     {/if}
 
-    <div class="w-1/3 flex gap-2 justify-end">
+    <div class="flex w-1/3 justify-end gap-2">
       {#each visibleModes as mode}
         <div class:hidden={activeMode === mode.id}>
           <Button
@@ -212,11 +212,11 @@
     {/if}
   </div>
 
-  <div class="w-full flex flex-row gap-2 items-start">
+  <div class="flex w-full flex-row items-start gap-2">
     {#if activeMode === "entropy"}
-      <div class="w-full flex flex-row items-center">
+      <div class="flex w-full flex-row items-center">
         <p class="p-2 text-sm font-medium text-black-80">0x</p>
-        <div class="flex-1 flex items-center gap-2">
+        <div class="flex flex-1 items-center gap-2">
           <Input
             value={wallet?.entropy.slice(2) ?? ""}
             label=""
@@ -233,9 +233,9 @@
         </div>
       </div>
     {:else if activeMode === "mnemonic"}
-      <div class="flex-1 flex items-center gap-2">
+      <div class="flex flex-1 items-center gap-2">
         <textarea
-          class="w-full p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 resize-none"
+          class="w-full resize-none rounded border-2 border-black-40 bg-white-100 p-2 text-sm outline-none"
           class:cursor-not-allowed={disabled}
           value={wallet?.mnemonic ?? ""}
           readonly={disabled}
@@ -255,15 +255,15 @@
           {#each Array(24) as _, index}
             {@const word = wallet?.mnemonic.split(" ")[index] ?? ""}
             {#if index < (wallet?.mnemonic.split(" ").length ?? 0)}
-              <div class="flex flex-row items-center min-w-0">
-                <span class="flex-shrink-0 w-5 text-sm text-black-60"
+              <div class="flex min-w-0 flex-row items-center">
+                <span class="w-5 flex-shrink-0 text-sm text-black-60"
                   >{index + 1}:</span
                 >
                 <input
                   type="text"
                   value={word}
                   readonly={editingIndex !== index}
-                  class="flex-1 min-w-0 p-2 border-2 border-black-40 outline-none rounded text-sm bg-white-100 hover:bg-black-05
+                  class="min-w-0 flex-1 rounded border-2 border-black-40 bg-white-100 p-2 text-sm outline-none hover:bg-black-05
                     {editingIndex === index ? 'border-black-100' : ''}"
                   class:cursor-not-allowed={disabled}
                   onclick={() => startEditing(index, word)}
@@ -283,11 +283,11 @@
         <div class="flex flex-col gap-2">
           {#each wallet?.addresses ?? [] as address, index}
             <div class="flex flex-row items-center gap-2">
-              <span class="flex-shrink-0 w-24 text-sm text-black-60">
+              <span class="w-24 flex-shrink-0 text-sm text-black-60">
                 m/44'/60'/0'/0/{index}:
               </span>
               <div
-                class="flex-1 p-2 border-2 border-black-40 rounded text-sm bg-white-100 font-mono"
+                class="flex-1 rounded border-2 border-black-40 bg-white-100 p-2 font-mono text-sm"
               >
                 {address}
               </div>
@@ -297,9 +297,9 @@
       </div>
     {/if}
   </div>
-  <div class="w-full flex flex-row gap-2 items-start">
+  <div class="flex w-full flex-row items-start gap-2">
     {#if errorMessage}
-      <p class="w-full mt-1 text-sm text-red-100" role="alert">
+      <p class="mt-1 w-full text-sm text-red-100" role="alert">
         {errorMessage}
       </p>
     {/if}

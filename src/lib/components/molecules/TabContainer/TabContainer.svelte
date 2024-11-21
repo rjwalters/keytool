@@ -28,9 +28,9 @@
       {#each tabNames as tabName, i}
         <button
           onclick={() => (activeTab = i)}
-          class="px-4 py-2 text-sm font-medium border-b-2 {activeTab === i
+          class="border-b-2 px-4 py-2 text-sm font-medium {activeTab === i
             ? 'border-blue-100 text-blue-100'
-            : 'border-transparent text-black-60 hover:text-black-80 hover:border-black-20'}"
+            : 'border-transparent text-black-60 hover:border-black-20 hover:text-black-80'}"
           aria-current={activeTab === i ? "page" : undefined}
         >
           {tabName}

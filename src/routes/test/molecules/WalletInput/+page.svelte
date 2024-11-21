@@ -54,7 +54,7 @@
 
 <ComponentTestFixture testedComponent="molecules/WalletInput">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full">
+    <div class="flex w-full flex-col gap-4">
       <!-- Label Input -->
       <Input
         label="Label Text"

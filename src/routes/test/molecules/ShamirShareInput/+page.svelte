@@ -51,7 +51,7 @@
 
 <ComponentTestFixture testedComponent="molecules/ShamirShareInput">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full">
+    <div class="flex w-full flex-col gap-4">
       <!-- Label Input -->
       <Input
         label="Label Text"
@@ -98,18 +98,18 @@
 
       <!-- Current Share Display -->
       {#if share}
-        <div class="w-full flex flex-col gap-1">
-          <div class="w-full text-sm bg-black-05 p-2 rounded">
+        <div class="flex w-full flex-col gap-1">
+          <div class="w-full rounded bg-black-05 p-2 text-sm">
             <div class="flex gap-2">
-              <span class="text-black-60 w-24">Index:</span>
+              <span class="w-24 text-black-60">Index:</span>
               <span class="font-mono">{share.index}</span>
             </div>
             <div class="flex gap-2">
-              <span class="text-black-60 w-24">entropyHex:</span>
+              <span class="w-24 text-black-60">entropyHex:</span>
               <span class="font-mono">{share.entropyHex}</span>
             </div>
             <div class="flex gap-2">
-              <span class="text-black-60 w-24">isIndexed:</span>
+              <span class="w-24 text-black-60">isIndexed:</span>
               <span class="font-mono">{share.isIndexed}</span>
             </div>
           </div>

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+build
+dist
+.svelte-kit
+coverage
+
+# Environment and IDE files
+.env*
+.vscode
+.idea
+
+# Package manager files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Other generated files
+*.min.js
+*.min.css

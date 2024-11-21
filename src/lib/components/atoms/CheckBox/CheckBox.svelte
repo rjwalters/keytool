@@ -45,7 +45,7 @@
 {#snippet CheckBoxInput(
   containerClasses: string,
   inputClasses: string,
-  labelClasses = ""
+  labelClasses = "",
 )}
   <div class={`flex content-center items-center ${containerClasses}`}>
     <input
@@ -69,12 +69,12 @@
   {@render CheckBoxInput(
     `gap-4 p-2 ${disabled ? "cursor-not-allowed" : ""}`,
     `h-6 w-6 border-2 border-purple-100 text-purple-100 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`,
-    disabled ? "cursor-not-allowed" : "cursor-pointer"
+    disabled ? "cursor-not-allowed" : "cursor-pointer",
   )}
 {:else}
   {@render CheckBoxInput(
     "",
     "appearance-none h-4 w-4 rounded-full bg-red-100 checked:bg-green-100",
-    "ml-2"
+    "ml-2",
   )}
 {/if}

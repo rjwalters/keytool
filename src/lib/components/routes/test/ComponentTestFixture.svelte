@@ -35,7 +35,7 @@
 
 <div class="max-w-screen-xl">
   <!-- Header section -->
-  <div class="p-4 my-4 flex w-full justify-between {className}">
+  <div class="my-4 flex w-full justify-between p-4 {className}">
     <div class="flex w-1/6 flex-col pl-4">
       <div>{innerWidth} px</div>
       <div>{currentMediaSize}</div>
@@ -66,7 +66,7 @@
   <!-- testing section -->
   <div class="absolute top-[140px] w-full">
     {#if controls}
-      <div class="bg-green-10 my-4 w-full border border-green-100">
+      <div class="my-4 w-full border border-green-100 bg-green-10">
         <h4 class="title-medium text-green-100">Controls</h4>
         <div class="w-full p-4">
           <div class="w-full bg-white-100">
@@ -77,7 +77,7 @@
     {/if}
 
     {#if component}
-      <div class="bg-blue-10 my-4 w-full border border-blue-100">
+      <div class="my-4 w-full border border-blue-100 bg-blue-10">
         <h4 class="title-medium text-blue-100">Component</h4>
         <div class="w-full p-4">
           <div class="w-full bg-white-100">

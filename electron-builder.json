@@ -1,0 +1,32 @@
+{
+  "appId": "com.rjwalters.keytool",
+  "productName": "KeyTool",
+  "directories": {
+    "output": "dist",
+    "buildResources": "icons"
+  },
+  "files": [
+    "build/**/*",
+    "electron/**/*",
+    "node_modules/electron-squirrel-startup/**/*"
+  ],
+  "asar": false,
+  "npmRebuild": true,
+  "nodeGypRebuild": true,
+  "mac": {
+    "category": "public.app-category.utilities",
+    "icon": "icons/icons.icns",
+    "target": ["dmg", "zip"]
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "icons/icon.ico"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "icons/icon.png"
+  },
+  "extraMetadata": {
+    "main": "electron/main.cjs"
+  }
+}

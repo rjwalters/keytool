@@ -9,7 +9,7 @@ const config = {
       assets: "build",
       fallback: "index.html",
       precompress: false,
-      strict: false,
+      strict: true,
     }),
 
     alias: {
@@ -24,25 +24,15 @@ const config = {
       $utils: "src/lib/utils",
       $api: "src/lib/api",
     },
-
-    paths: {
-      base: "",
-      assets: "",
-    },
-    prerender: {
-      handleMissingId: "ignore",
-      entries: ["/"],
-    },
-    appDir: "_app",
-    files: {
-      assets: "static",
-      routes: "src/routes",
-    },
-    version: {
-      name: Date.now().toString(),
-    },
   },
-  preprocess: vitePreprocess(),
+  preprocess: [{ postcss: true }, vitePreprocess()],
+  prerender: {
+    default: true,
+    handleMissingId: "ignore",
+  },
+  version: {
+    name: Date.now().toString(),
+  },
   compilerOptions: {
     runes: true,
   },

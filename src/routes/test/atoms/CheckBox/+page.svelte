@@ -27,7 +27,7 @@
 
 <ComponentTestFixture testedComponent="atoms/CheckBox">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full max-w-md">
+    <div class="flex w-full max-w-md flex-col gap-4">
       <!-- Variant Selection -->
       <RadioGroup
         label="Variant"

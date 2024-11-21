@@ -52,7 +52,7 @@
   const maxStringLength = $derived(Math.max(...options.map((o) => o?.length)));
   const columnWidth = $derived(letterWidthPx * (maxStringLength + 5));
   const groupName = $derived(
-    `radio-group-${options.map((o) => o.replace(/[^a-z0-9]/gi, "")).join("-")}`
+    `radio-group-${options.map((o) => o.replace(/[^a-z0-9]/gi, "")).join("-")}`,
   );
 
   // Calculate optimal rows and columns based on transpose mode
@@ -120,7 +120,7 @@
   </div>
 
   {#if error}
-    <div class="text-red-100 text-sm my-2">
+    <div class="my-2 text-sm text-red-100">
       {error}
     </div>
   {/if}

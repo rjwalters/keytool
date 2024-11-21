@@ -16,7 +16,7 @@
 
 <ComponentTestFixture testedComponent="molecules/TabContainer">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full max-w-md">
+    <div class="flex w-full max-w-md flex-col gap-4">
       <RadioGroup
         label="Number of Tabs"
         options={["2", "3", "4", "5"]}
@@ -38,32 +38,32 @@
   {#snippet component()}
     <TabContainer tabNames={tabs}>
       {#snippet tab0()}
-        <div class="p-4 border border-black-20 rounded">
-          <h3 class="text-lg font-medium mb-2">Content for {tabs[0]}</h3>
+        <div class="rounded border border-black-20 p-4">
+          <h3 class="mb-2 text-lg font-medium">Content for {tabs[0]}</h3>
           <p class="text-black-60">This is the content area for tab 1.</p>
         </div>
       {/snippet}
       {#snippet tab1()}
-        <div class="p-4 border border-black-20 rounded">
-          <h3 class="text-lg font-medium mb-2">Content for {tabs[1]}</h3>
+        <div class="rounded border border-black-20 p-4">
+          <h3 class="mb-2 text-lg font-medium">Content for {tabs[1]}</h3>
           <p class="text-black-60">This is the content area for tab 2.</p>
         </div>
       {/snippet}
       {#snippet tab2()}
-        <div class="p-4 border border-black-20 rounded">
-          <h3 class="text-lg font-medium mb-2">Content for {tabs[2]}</h3>
+        <div class="rounded border border-black-20 p-4">
+          <h3 class="mb-2 text-lg font-medium">Content for {tabs[2]}</h3>
           <p class="text-black-60">This is the content area for tab 3.</p>
         </div>
       {/snippet}
       {#snippet tab3()}
-        <div class="p-4 border border-black-20 rounded">
-          <h3 class="text-lg font-medium mb-2">Content for {tabs[3]}</h3>
+        <div class="rounded border border-black-20 p-4">
+          <h3 class="mb-2 text-lg font-medium">Content for {tabs[3]}</h3>
           <p class="text-black-60">This is the content area for tab 4.</p>
         </div>
       {/snippet}
       {#snippet tab4()}
-        <div class="p-4 border border-black-20 rounded">
-          <h3 class="text-lg font-medium mb-2">Content for {tabs[4]}</h3>
+        <div class="rounded border border-black-20 p-4">
+          <h3 class="mb-2 text-lg font-medium">Content for {tabs[4]}</h3>
           <p class="text-black-60">This is the content area for tab 5.</p>
         </div>
       {/snippet}

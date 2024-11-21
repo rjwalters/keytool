@@ -51,7 +51,7 @@
         return ShamirShare.create(
           reportShare.index,
           reportShare.value,
-          reportShare.isIndexed
+          reportShare.isIndexed,
         );
       });
 
@@ -74,13 +74,13 @@
 
       recoveredWallet = recoverWalletFromShares(
         requiredShares,
-        shares.slice(0, requiredShares)
+        shares.slice(0, requiredShares),
       );
 
       const matchesTargetEntropy = recoveredWallet.entropy == targetEntropy;
 
       console.log(
-        `recovered entropy: ${recoveredWallet.entropy} ${matchesTargetEntropy ? "(matches target)" : "DOES NOT MATCH TARGET!"}`
+        `recovered entropy: ${recoveredWallet.entropy} ${matchesTargetEntropy ? "(matches target)" : "DOES NOT MATCH TARGET!"}`,
       );
 
       error = "";
@@ -101,7 +101,7 @@
 
 <div class="flex flex-col gap-6 p-4">
   <div class="flex flex-col gap-4">
-    <div class="flex gap-8 items-center">
+    <div class="flex items-center gap-8">
       <div class="flex-1 border border-black-20 p-3">
         <p class="medium pb-4">Required Shares</p>
         <RadioGroup
@@ -121,7 +121,7 @@
     </div>
 
     {#each shares.slice(0, requiredShares) as share, index}
-      <div class="flex gap-4 items-center">
+      <div class="flex items-center gap-4">
         <div class="flex-grow">
           {#if share}
             <ShamirShareInput
@@ -137,12 +137,12 @@
   </div>
 
   {#if error}
-    <div class="text-red-100 text-sm" role="alert">
+    <div class="text-sm text-red-100" role="alert">
       {error}
     </div>
   {/if}
 
-  <div class="flex justify-between items-center">
+  <div class="flex items-center justify-between">
     <Button variant="primary" size="lg" onclick={recoverWallet}>
       Recover Wallet
     </Button>
@@ -150,7 +150,7 @@
 
   {#if recoveredWallet}
     <div
-      class="mt-4 p-4 rounded-md"
+      class="mt-4 rounded-md p-4"
       class:bg-green-10={recoveredWallet.entropy === targetEntropy}
       class:bg-black-10={recoveredWallet.entropy !== targetEntropy}
     >

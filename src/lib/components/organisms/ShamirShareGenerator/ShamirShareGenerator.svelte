@@ -72,7 +72,7 @@
       const makeShares: (
         wallet: Wallet,
         minimum: number,
-        shares: number
+        shares: number,
       ) => ShamirShare[] = generateIndexedShares
         ? createIndexedShares
         : createShares;
@@ -178,15 +178,15 @@
     <!-- Generated Shares -->
     {#if generatedShares.length > 0}
       <div class="flex flex-col gap-4">
-        <div class="flex space-beween gap-x-8">
-          <h3 class="text-lg font-medium w-full">Generated Shares</h3>
+        <div class="space-beween flex gap-x-8">
+          <h3 class="w-full text-lg font-medium">Generated Shares</h3>
           <div class="w-64">
             <Button
               variant="secondary"
               size="md"
               onclick={() => {
                 console.log(
-                  `generating ${totalShares} standard shares at user's request`
+                  `generating ${totalShares} standard shares at user's request`,
                 );
                 generateShares();
               }}
@@ -200,7 +200,7 @@
               size="md"
               onclick={() => {
                 console.log(
-                  `generating ${totalShares} indexed shares at user's request`
+                  `generating ${totalShares} indexed shares at user's request`,
                 );
                 generateShares(true);
               }}
@@ -215,7 +215,7 @@
           {/each}
         </div>
 
-        <div class="flex space-beween gap-x-8">
+        <div class="space-beween flex gap-x-8">
           <div class="flex flex-col gap-3">
             <p class="small">
               Any {requiredShares} of these {generatedShares.length} shares can be
@@ -251,7 +251,7 @@
 
     <!-- Error Display -->
     {#if error}
-      <div class="text-red-100 text-sm" role="alert">
+      <div class="text-sm text-red-100" role="alert">
         {error}
       </div>
     {/if}

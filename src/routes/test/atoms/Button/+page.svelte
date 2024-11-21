@@ -46,7 +46,7 @@
 
 <ComponentTestFixture testedComponent="atoms/Button">
   {#snippet controls()}
-    <div class="flex flex-col gap-4 w-full max-w-md">
+    <div class="flex w-full max-w-md flex-col gap-4">
       <!-- Label Input -->
       <Input
         label="Button Label"

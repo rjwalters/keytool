@@ -37,7 +37,7 @@
   }
 </script>
 
-<div class="flex gap-8 items-center">
+<div class="flex items-center gap-8">
   <div class="flex-1 border border-black-20 p-3">
     <p class="medium pb-4">Required Shares</p>
     <RadioGroup

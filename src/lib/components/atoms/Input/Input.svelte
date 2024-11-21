@@ -27,7 +27,7 @@
   const id = $derived(`input-${crypto.randomUUID()}`);
 </script>
 
-<div class="flex flex-col items-start justify-between w-full">
+<div class="flex w-full flex-col items-start justify-between">
   {#if label}
     <label for={id} class="mb-1 text-sm font-medium text-black-80">
       {label}

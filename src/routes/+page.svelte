@@ -26,12 +26,12 @@
 
   // Create tabs array conditionally
   const tabNames = ["Generate Shares", "Recover Wallet", "Learn More"].concat(
-    isDevelopment ? ["UI Tests"] : []
+    isDevelopment ? ["UI Tests"] : [],
   );
 </script>
 
 <div class="p-8">
-  <h1 class="text-3xl font-bold mb-6">Key Tool</h1>
+  <h1 class="mb-6 text-3xl font-bold">Key Tool</h1>
 
   <TabContainer {tabNames}>
     {#snippet tab0()}
@@ -60,9 +60,9 @@
       <div class="space-y-4">
         <h2 class="text-xl font-semibold">About Shamir's Secret Sharing</h2>
 
-        <div class="bg-yellow-50 p-4 rounded-lg mb-6">
+        <div class="bg-yellow-50 mb-6 rounded-lg p-4">
           <p class="font-medium">🔑 Quick Summary:</p>
-          <ul class="list-disc pl-5 mt-2">
+          <ul class="mt-2 list-disc pl-5">
             <li>Split your wallet into multiple shares</li>
             <li>Choose how many shares are needed for recovery</li>
             <li>Recover your wallet using those shares later</li>
@@ -78,54 +78,54 @@
           about the secret.
         </p>
 
-        <div class="bg-green-50 p-4 rounded-lg mt-4">
+        <div class="bg-green-50 mt-4 rounded-lg p-4">
           <p class="font-medium">📋 Example Scenario:</p>
           <p class="mt-2">
             You split your wallet into 5 shares, requiring any 3 for recovery.
             You give one share each to five family members. If you lose access
             to your wallet:
           </p>
-          <ul class="list-disc pl-5 mt-2">
+          <ul class="mt-2 list-disc pl-5">
             <li>Any 3 family members can help you recover it</li>
             <li>No group of 2 or fewer can access your wallet</li>
             <li>You can still recover if 2 shares are lost</li>
           </ul>
         </div>
 
-        <h3 class="text-lg font-semibold mt-6 mb-2">
+        <h3 class="mb-2 mt-6 text-lg font-semibold">
           Standard vs. Indexed Shares
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div class="border rounded-lg p-4">
+        <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="rounded-lg border p-4">
             <div class="h-24">
-              <h4 class="font-semibold mb-2">Standard Shares</h4>
-              <p class="text-black-80 mb-4">
+              <h4 class="mb-2 font-semibold">Standard Shares</h4>
+              <p class="mb-4 text-black-80">
                 Traditional implementation requiring both x and y coordinates
                 for recovery. Like plotting points on a graph, each share needs
                 two numbers to be useful.
               </p>
             </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <p class="font-medium mb-2">
+            <div class="bg-gray-50 rounded p-3">
+              <p class="mb-2 font-medium">
                 To recover your secret key you will need:
               </p>
-              <ul class="list-disc pl-5 space-y-2">
+              <ul class="list-disc space-y-2 pl-5">
                 <li>
                   Your recovery threshold "N" (how many shares are required)
-                  <div class="text-sm text-gray-600 ml-2">
+                  <div class="text-gray-600 ml-2 text-sm">
                     This sets the degree of the polynomial used in the math
                   </div>
                 </li>
                 <li>
                   N complete shares, each containing:
-                  <ul class="list-disc pl-5 mt-1">
+                  <ul class="mt-1 list-disc pl-5">
                     <li>An x-coordinate (index number)</li>
                     <li>A y-coordinate (16 or 32 byte value)</li>
                   </ul>
                 </li>
                 <li>
                   The y-coordinate can be provided as either:
-                  <ul class="list-disc pl-5 mt-1">
+                  <ul class="mt-1 list-disc pl-5">
                     <li>Hexadecimal string (e.g., "0x123abc...")</li>
                     <li>Mnemonic phrase (e.g., "word1 word2 word3...")</li>
                   </ul>
@@ -134,28 +134,28 @@
             </div>
           </div>
 
-          <div class="border rounded-lg p-4">
+          <div class="rounded-lg border p-4">
             <div class="h-24">
-              <h4 class="font-semibold mb-2">Indexed Shares</h4>
-              <p class="text-black-80 mb-4">
+              <h4 class="mb-2 font-semibold">Indexed Shares</h4>
+              <p class="mb-4 text-black-80">
                 Enhanced version that embeds the x-coordinate in the share
                 value's least significant bits.
               </p>
             </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <p class="font-medium mb-2">
+            <div class="bg-gray-50 rounded p-3">
+              <p class="mb-2 font-medium">
                 To recover your secret key you will need:
               </p>
-              <ul class="list-disc pl-5 space-y-2">
+              <ul class="list-disc space-y-2 pl-5">
                 <li>
                   Your recovery threshold "N" (how many shares are required)
-                  <div class="text-sm text-gray-600 ml-2">
+                  <div class="text-gray-600 ml-2 text-sm">
                     This sets the degree of the polynomial used in the math
                   </div>
                 </li>
                 <li>
                   N share values, each being:
-                  <ul class="list-disc pl-5 mt-1">
+                  <ul class="mt-1 list-disc pl-5">
                     <li>
                       A self-contained 16 or 32 byte value that includes its own
                       position information
@@ -164,7 +164,7 @@
                 </li>
                 <li>
                   Each share can be provided as either:
-                  <ul class="list-disc pl-5 mt-1">
+                  <ul class="mt-1 list-disc pl-5">
                     <li>Hexadecimal string (e.g., "0x123abc...")</li>
                     <li>Mnemonic phrase (e.g., "word1 word2 word3...")</li>
                   </ul>
@@ -174,9 +174,9 @@
           </div>
         </div>
 
-        <div class="bg-blue-20 p-4 rounded-lg mt-4">
-          <h4 class="font-semibold mb-2">Why use Indexed Shares?</h4>
-          <ul class="list-disc pl-5 space-y-2">
+        <div class="mt-4 rounded-lg bg-blue-20 p-4">
+          <h4 class="mb-2 font-semibold">Why use Indexed Shares?</h4>
+          <ul class="list-disc space-y-2 pl-5">
             <li>Simpler recovery process - only one number needed per share</li>
             <li>Reduced risk of coordinate mixing errors</li>
             <li>
@@ -186,21 +186,21 @@
           </ul>
         </div>
 
-        <h3 class="text-lg font-semibold mt-6 mb-2">Technical Details</h3>
+        <h3 class="mb-2 mt-6 text-lg font-semibold">Technical Details</h3>
         <p class="text-black-80">
           The mathematics behind this uses polynomial interpolation in a finite
           field. Each share is a point on a polynomial curve, and the secret is
           encoded as the y-intercept (the value at x=0). This tool implements
           the algorithm using:
         </p>
-        <ul class="list-disc pl-5 mt-2 space-y-1">
+        <ul class="mt-2 list-disc space-y-1 pl-5">
           <li>Prime field of 2<sup>256</sup> + 297 for 256-bit keys</li>
           <li>Prime field of 2<sup>128</sup> + 51 for 128-bit keys</li>
         </ul>
 
-        <div class="bg-red-50 p-4 rounded-lg mt-6">
-          <h4 class="font-semibold mb-2">⚠️ Important Security Notes</h4>
-          <ul class="list-disc pl-5 space-y-2">
+        <div class="bg-red-50 mt-6 rounded-lg p-4">
+          <h4 class="mb-2 font-semibold">⚠️ Important Security Notes</h4>
+          <ul class="list-disc space-y-2 pl-5">
             <li>Store shares separately and securely</li>
             <li>Don't share with people you don't fully trust</li>
             <li>Consider keeping a backup of your recovery threshold</li>

@@ -64,7 +64,7 @@
 <button type="button" class={classes} {...others}>
   {#if loading}
     <div
-      class="absolute inset-0 flex items-center justify-center pointer-events-none"
+      class="pointer-events-none absolute inset-0 flex items-center justify-center"
     >
       <svg
         class={`animate-spin ${spinnerSizes[size]}`}

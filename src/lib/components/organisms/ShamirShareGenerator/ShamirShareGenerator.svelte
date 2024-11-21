@@ -133,6 +133,8 @@
     if (!wallet || generatedShares.length === 0) return;
     navigator.clipboard.writeText(sharesReport);
   }
+
+  const isDevelopment = import.meta.env.DEV;
 </script>
 
 <!-- modal displayed when share generation is expected to take a long time-->
@@ -236,15 +238,17 @@
               Copy Report
             </Button>
           </div>
-          <div class="w-48">
-            <Button
-              variant="secondary"
-              size="md"
-              onclick={() => console.log(sharesReport)}
-            >
-              Log Report
-            </Button>
-          </div>
+          {#if isDevelopment}
+            <div class="w-48">
+              <Button
+                variant="secondary"
+                size="md"
+                onclick={() => console.log(sharesReport)}
+              >
+                Log Report
+              </Button>
+            </div>
+          {/if}
         </div>
       </div>
     {/if}

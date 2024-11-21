@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [sveltekit()],
-  base: "",
+  base: process.env.NODE_ENV === "production" ? "./" : "/",
   build: {
     outDir: "build",
     sourcemap: true,

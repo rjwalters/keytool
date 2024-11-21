@@ -10,9 +10,9 @@
     "electron/**/*",
     "node_modules/electron-squirrel-startup/**/*"
   ],
-  "asar": false,
-  "npmRebuild": true,
-  "nodeGypRebuild": true,
+  "asar": true,
+  "npmRebuild": false,
+  "nodeGypRebuild": false,
   "mac": {
     "category": "public.app-category.utilities",
     "icon": "icons/icons.icns",
@@ -27,6 +27,6 @@
     "icon": "icons/icon.png"
   },
   "extraMetadata": {
-    "main": "electron/main.cjs"
+    "main": "electron/main.js"
   }
 }

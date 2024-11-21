@@ -24,7 +24,9 @@
     "tests/**/*.svelte",
     "electron/**/*.ts", // Added electron files
     "electron/**/*.js", // Added electron files
-    "vite.config.ts"
+    "vite.config.ts",
+    "static/app.d.ts",
+    "static/app.d.ts"
   ],
   "exclude": [
     "node_modules/**",

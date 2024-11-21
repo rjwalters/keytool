@@ -77,7 +77,7 @@
         shares.slice(0, requiredShares)
       );
 
-      let matchesTargetEntropy = recoveredWallet.entropy == targetEntropy;
+      const matchesTargetEntropy = recoveredWallet.entropy == targetEntropy;
 
       console.log(
         `recovered entropy: ${recoveredWallet.entropy} ${matchesTargetEntropy ? "(matches target)" : "DOES NOT MATCH TARGET!"}`

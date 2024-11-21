@@ -11,7 +11,7 @@
   let letterWidth = $state(10);
   let maxPerColumn = $state(5);
   let isTransposed = $state(false);
-  let options = [
+  const options = [
     "Option 1",
     "Option 2",
     "Option 3",

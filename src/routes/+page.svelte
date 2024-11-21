@@ -25,7 +25,7 @@
   const isDevelopment = import.meta.env.DEV;
 
   // Create tabs array conditionally
-  const tabs = ["Generate Shares", "Recover Wallet", "Learn More"].concat(
+  const tabNames = ["Generate Shares", "Recover Wallet", "Learn More"].concat(
     isDevelopment ? ["UI Tests"] : []
   );
 </script>
@@ -33,7 +33,7 @@
 <div class="p-8">
   <h1 class="text-3xl font-bold mb-6">Key Tool</h1>
 
-  <TabContainer tabNames={tabs}>
+  <TabContainer {tabNames}>
     {#snippet tab0()}
       <div>
         <ShamirShareGenerator bind:sharesReport />
@@ -219,23 +219,22 @@
         </div>
       </div>
     {/snippet}
-    {#if isDevelopment}
-      {#snippet tab3()}
-        <div class="mt-4">
-          <ul class="space-y-2">
-            {#each testComponents as component}
-              <li>
-                <a
-                  href={`test/${component}`}
-                  class="text-black-80 hover:text-blue-100 hover:underline"
-                >
-                  {component}
-                </a>
-              </li>
-            {/each}
-          </ul>
-        </div>
-      {/snippet}
-    {/if}
+
+    {#snippet tab3()}
+      <div class="mt-4">
+        <ul class="space-y-2">
+          {#each testComponents as component}
+            <li>
+              <a
+                href={`test/${component}`}
+                class="text-black-80 hover:text-blue-100 hover:underline"
+              >
+                {component}
+              </a>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/snippet}
   </TabContainer>
 </div>

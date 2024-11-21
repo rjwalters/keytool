@@ -21,7 +21,7 @@
 <script lang="ts">
   import { isAriaIntent } from "$utils/aria";
 
-  let {
+  const {
     color = "green",
     size = "sm",
     label = "?",

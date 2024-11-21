@@ -95,10 +95,14 @@ app.whenReady().then(() => {
       const requestUrl = new URL(request.url);
       let filePath = decodeURIComponent(requestUrl.pathname);
 
-      if (filePath.startsWith('/_app/')) {
+      if (filePath.startsWith("/_app/")) {
         // Handle _app resources
-        filePath = path.join(process.cwd(), 'build', filePath.replace(/^\/+/, ''));
-      } 
+        filePath = path.join(
+          process.cwd(),
+          "build",
+          filePath.replace(/^\/+/, ""),
+        );
+      }
 
       console.log("Protocol handler resolved:", {
         requestUrl: request.url,
@@ -120,7 +124,7 @@ app.whenReady().then(() => {
             ".svg": "image/svg+xml",
           }[ext] || "application/octet-stream";
 
-        let content = fs.readFileSync(filePath);
+        const content = fs.readFileSync(filePath);
 
         /*
         // Inject base tag for HTML files
@@ -145,7 +149,6 @@ app.whenReady().then(() => {
         status: 404,
         headers: { "Content-Type": "text/plain" },
       });
-
     } catch (error) {
       console.error("Protocol handler error:", error);
 

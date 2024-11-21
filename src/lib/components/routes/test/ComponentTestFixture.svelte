@@ -2,7 +2,7 @@
   import * as navigation from "$app/navigation";
   import { Button } from "$components/atoms";
 
-  let {
+  const {
     class: className = "",
     testedComponent,
     controls,

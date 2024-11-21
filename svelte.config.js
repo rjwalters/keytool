@@ -26,8 +26,8 @@ const config = {
     },
 
     paths: {
-      base: '',
-      assets:'',
+      base: "",
+      assets: "",
     },
     prerender: {
       handleMissingId: "ignore",

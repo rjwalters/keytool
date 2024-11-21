@@ -10,7 +10,7 @@
     tab4?: Snippet;
   }
 
-  let {
+  const {
     tabNames = [],
     tab0,
     tab1,

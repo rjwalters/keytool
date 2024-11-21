@@ -43,7 +43,7 @@
 
   let activeMode = $state(displayMode);
   let wallet = $state<Wallet | null>(null);
-  let bits: number = $derived((wallet?.entropy.slice(2).length || 0) * 4);
+  const bits: number = $derived((wallet?.entropy.slice(2).length || 0) * 4);
   let errorMessage = $state("");
   let editingIndex = $state<number | null>(null);
 

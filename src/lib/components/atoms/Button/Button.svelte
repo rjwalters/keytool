@@ -14,7 +14,7 @@
 </script>
 
 <script lang="ts">
-  let {
+  const {
     variant = "primary",
     size = "md",
     loading = false,

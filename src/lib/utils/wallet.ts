@@ -485,7 +485,7 @@ function makeIndexedShares(
   };
 
   let attempts = 0;
-  let matches = [];
+  const matches: Number[] = [];
   while (attempts < maxAttempts[shares]) {
     // Generate one random polynomial per attempt
     const poly = [secret];
@@ -520,7 +520,7 @@ function makeIndexedShares(
     attempts++;
   }
 
-  let histogram = Array(shares)
+  const histogram = Array(shares)
     .fill(0)
     .map((_, i) => matches.filter((x) => x === i).length);
 

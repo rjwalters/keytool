@@ -2,7 +2,7 @@
   "name": "@rjwalters/keytool",
   "version": "0.0.1",
   "type": "module",
-  "description": "Basic key shares tool",
+  "description": "Desktop tool for key backup using Shamir's Secret Sharing",
   "author": {
     "name": "Robb Walters",
     "url": "https://github.com/rjwalters"

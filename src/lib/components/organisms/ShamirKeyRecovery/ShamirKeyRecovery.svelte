@@ -64,7 +64,7 @@
 
   function recoverWallet() {
     try {
-      console.log("recovering wallet");
+      console.log(`recovering wallet from ${requiredShares} shares...`);
       shares.forEach((s) => {
         console.log(s);
       });

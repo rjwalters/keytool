@@ -3,10 +3,12 @@
     index: number;
     value: string; // a hex string
     isIndexed: boolean;
+    mnemonic: string;
   }
 
   export interface SharesReport {
     entropy: string; // a hex string
+    mnemonic: string;
     minimum: number;
     total: number;
     shares: SharesReportShare[];
@@ -77,22 +79,16 @@
 
       if (generateIndexedShares && totalShares > 6) {
         showGeneratingModal = true;
+        // Ensure modal has time to render before heavy computation
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Wrap the share generation in a Promise to ensure it's async
-      generatedShares = await new Promise<ShamirShare[]>((resolve) => {
-        setTimeout(() => {
-          if (wallet) {
-            const shares = makeShares(wallet, requiredShares, totalShares);
-            resolve(shares);
-          } else {
-            resolve([]);
-          }
-        }, 0);
-      });
+      generatedShares = makeShares(wallet, requiredShares, totalShares);
 
       const reportData: SharesReport = {
         entropy,
+        mnemonic: walletFromEntropy(entropy).mnemonic,
         minimum: requiredShares,
         total: totalShares,
         shares: generatedShares.map((share) => ({
@@ -117,7 +113,7 @@
   function handleWalletChange(newWallet: Wallet) {
     wallet = newWallet;
     entropy = wallet.entropy;
-    console.log("regenerating shares after wallet change");
+    console.log(`regenerating ${totalShares} shares on wallet change`);
     generateShares();
   }
 
@@ -127,7 +123,7 @@
     requiredShares = required;
     totalShares = total;
     if (shouldRegenerate) {
-      console.log("regenerating shares after scheme change");
+      console.log(`regenerating ${totalShares} shares on scheme change`);
       generateShares();
     }
   }
@@ -140,7 +136,6 @@
 </script>
 
 <!-- modal displayed when share generation is expected to take a long time-->
-<!-- modal displayed when share generation is expected to take a long time-->
 {#if showGeneratingModal}
   <div role="dialog" class="modal-external" transition:fade={{ duration: 200 }}>
     <div
@@ -150,7 +145,9 @@
     >
       <div class="z-[102] flex flex-col items-center justify-center gap-4 p-8">
         <div class="loading-spinner"></div>
-        <div class="text-lg font-medium">Generating {totalShares} Shares</div>
+        <div class="text-lg font-medium">
+          Generating {totalShares} Indexed Shares
+        </div>
         <div class="text-black-60">
           {requiredShares} required for recovery
         </div>
@@ -188,7 +185,9 @@
               variant="secondary"
               size="md"
               onclick={() => {
-                console.log("generating standard shares");
+                console.log(
+                  `generating ${totalShares} standard shares at user's request`
+                );
                 generateShares();
               }}
             >
@@ -200,7 +199,9 @@
               variant="secondary"
               size="md"
               onclick={() => {
-                console.log("generating indexed shares");
+                console.log(
+                  `generating ${totalShares} indexed shares at user's request`
+                );
                 generateShares(true);
               }}
             >
@@ -215,12 +216,17 @@
         </div>
 
         <div class="flex space-beween gap-x-8">
-          <p class="text-sm text-black-60 w-full">
-            Any {requiredShares} of these {generatedShares.length} shares can be
-            used to reconstruct the original wallet. If you are using Standard Shares,
-            you must provide both the index and the share value. If you are using
-            Indexed Shares, the index is encoded within the share value.
-          </p>
+          <div class="flex flex-col gap-3">
+            <p class="small">
+              Any {requiredShares} of these {generatedShares.length} shares can be
+              used to reconstruct the original wallet.
+            </p>
+            <p class="small">
+              If you are using Standard Shares, you must provide both index and
+              share values. If you are using Indexed Shares, the index is
+              encoded within the share value.
+            </p>
+          </div>
           <div class="w-48">
             <Button
               variant="secondary"

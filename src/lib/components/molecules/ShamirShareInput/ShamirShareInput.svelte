@@ -28,13 +28,13 @@
   // Update internal state when a bound share prop is changed
   $effect(() => {
     if (share) {
-      console.log(`parent set share to ${share}`);
+      // console.log(`parent set share to ${share}`);
       shareIndex = share.index;
       shareEntropy = share.entropyHex;
       isIndexed = share.isIndexed;
       errorMessage = "";
     } else {
-      console.log(`parent set share to undefined`);
+      // console.log(`parent set share to undefined`);
       shareIndex = undefined;
       shareEntropy = undefined;
       isIndexed = false;

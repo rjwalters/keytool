@@ -26,10 +26,12 @@ const config = {
     },
 
     paths: {
-      relative: true,
+      base: '',
+      assets:'',
     },
     prerender: {
       handleMissingId: "ignore",
+      entries: ["/"],
     },
     appDir: "_app",
     files: {

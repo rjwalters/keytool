@@ -36,6 +36,47 @@ Get the latest release for your platform from the [GitHub Releases](https://gith
 
 For detailed examples and security recommendations, see the "Learn More" tab within the application.
 
+### Tiered Sharing
+
+KeyTool could be used in tiered sharing schemes, in which one or more of the shares is split into subparts. This approach allows you to create a hierarchical access structure for reconstruction. As an example, splitting a secret with a 2-of-3 scheme into parts (a, b, c) and then further splitting part (c) with a 3-of-5 scheme could enforce the requirements:
+
+- 2 admin shares ("a" and "b"), or
+- 1 admin share ("a" or "b") plus 3 user shares (any 3 of the five shares created from "c")
+
+This can be achieved by creating a tree of shares, where the secret is first split among admins, and then one admin share is further split among users. This approach, inspired by [codahale/shamir](https://github.com/codahale/shamir), provides flexible access control while maintaining security.
+
+## Security Notes
+
+- Store shares separately and securely
+- Never store all shares in one location
+- Consider physical (paper) backups
+- Test recovery process before deploying
+- Verify checksums when recovering
+
+## Technical Details
+
+KeyTool uses Shamir's Secret Sharing over GF(Q) (prime fields) rather than GF(256) for several reasons:
+
+1. **Simplicity**: The implementation over prime fields is more straightforward and easier to understand.
+2. **128b BIP39 Compatibility**: For 128-bit cryptocurrency seeds, using a 128-bit prime field allows shares to be stored as 12-word BIP39 mnemonic phrases.
+3. **Use Case Optimization**: Since KeyTool is used for occasional key backup and recovery, we prioritize implementation clarity over raw performance.
+
+For splitting larger secrets (>256-bits), GF(256) implementations like [codahale/shamir](https://github.com/codahale/shamir) would be more appropriate.
+
+### Security Implementation
+
+- Uses polynomial interpolation in finite fields
+- 256-bit keys: Prime field of 2^256 + 297
+- 128-bit keys: Prime field of 2^128 + 51
+- Information-theoretic security
+
+### Dependencies
+
+- Electron for cross-platform desktop support
+- SvelteKit for UI
+- ethers.js for cryptographic operations
+- TailwindCSS for styling
+
 ## Building from Source
 
 ### Prerequisites
@@ -82,30 +123,6 @@ npm run make -- --linux
 ```
 
 Build outputs will be available in the `dist` directory.
-
-## Security Notes
-
-- Store shares separately and securely
-- Never store all shares in one location
-- Consider physical (paper) backups
-- Test recovery process before deploying
-- Verify checksums when recovering
-
-## Technical Details
-
-### Security Implementation
-
-- Uses polynomial interpolation in finite fields
-- 256-bit keys: Prime field of 2^256 + 297
-- 128-bit keys: Prime field of 2^128 + 51
-- Information-theoretic security
-
-### Dependencies
-
-- Electron for cross-platform desktop support
-- SvelteKit for UI
-- ethers.js for cryptographic operations
-- TailwindCSS for styling
 
 ## Contributing
 

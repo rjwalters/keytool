@@ -36,14 +36,14 @@
     {/snippet}
 
     {#snippet tab1()}
-      <div class="w-64">
+      <div class="w-full">
         <Button
-          variant="primary"
+          variant="secondary"
           size="md"
           disabled={!sharesReport}
           onclick={() => (loadFromSharesReport = true)}
         >
-          Load Generated Shares
+          Load From Generated Shares
         </Button>
       </div>
       <div>

@@ -1,11 +1,10 @@
 <script lang="ts">
   import { Button, RadioGroup } from "$components/atoms";
-  import { ShamirShareInput } from "$components/molecules";
+  import { ShamirShareInput, WalletInput } from "$components/molecules";
   import type { SharesReport } from "$components/organisms";
   import {
     recoverWalletFromShares,
-    shareValueToEntropyHex,
-    type ShamirShare,
+    ShamirShare,
     type Wallet,
   } from "$utils/wallet";
 
@@ -28,19 +27,13 @@
     }
   });
 
-  const MAX_SHARES = 5;
-
-  // Initialize array of up to 5 potential shares
-  let shares = $state<ShamirShare[]>(Array(MAX_SHARES));
-
+  let targetEntropy = $state("");
   let recoveredWallet = $state<Wallet | null>(null);
   let error = $state("");
-  let minimum = $state("3");
 
   const requiredSharesOptions = ["2", "3", "4", "5"];
-  let requiredShares = $state(3);
-
-  let targetEntropy = $state("");
+  let requiredShares: number | undefined = $state(undefined);
+  let shares: ShamirShare[] = $state([]);
 
   function processShareReport() {
     try {
@@ -54,15 +47,12 @@
         .sort(() => Math.random() - 0.5) // Shuffle
         .slice(0, requiredShares);
 
-      shares = selectedShares.map((share) => {
-        let value = BigInt(share.value);
-
-        if (share.isIndexed) {
-          // recover share index from lowest 8 bits
-          return [value & 0xffn, value];
-        } else {
-          return [BigInt(parseInt(share.index)), value];
-        }
+      shares = selectedShares.map((reportShare) => {
+        return ShamirShare.create(
+          reportShare.index,
+          reportShare.value,
+          reportShare.isIndexed
+        );
       });
 
       error = "";
@@ -76,13 +66,23 @@
     try {
       console.log("recovering wallet");
       shares.forEach((s) => {
-        console.log(s[0].toString(10), shareValueToEntropyHex(s[1]));
+        console.log(s);
       });
-      recoveredWallet = recoverWalletFromShares(parseInt(minimum), shares);
+      if (!requiredShares) {
+        throw new Error("required shares has not been set");
+      }
+
+      recoveredWallet = recoverWalletFromShares(
+        requiredShares,
+        shares.slice(0, requiredShares)
+      );
+
       let matchesTargetEntropy = recoveredWallet.entropy == targetEntropy;
+
       console.log(
         `recovered entropy: ${recoveredWallet.entropy} ${matchesTargetEntropy ? "(matches target)" : "DOES NOT MATCH TARGET!"}`
       );
+
       error = "";
     } catch (err) {
       console.error("Error recovering wallet:", err);
@@ -93,9 +93,7 @@
 
   function handleShareChange(index: number, share: ShamirShare | undefined) {
     if (share) {
-      console.log(
-        `updated share ${index} to [${share[0].toString(10)},${shareValueToEntropyHex(share[1])}]`
-      );
+      console.log(`updated share ${index} to ${share}`);
       shares[index] = share;
     }
   }
@@ -108,11 +106,15 @@
         <p class="medium pb-4">Required Shares</p>
         <RadioGroup
           options={requiredSharesOptions}
-          value={requiredShares.toString()}
+          value={requiredShares ? requiredShares?.toString() : undefined}
           maxOptionsPerColumn={2}
           transpose
           onChange={(value, _) => {
+            console.log(`changed required shares to ${value}`);
             requiredShares = parseInt(value);
+            while (shares.length < requiredShares) {
+              shares.push(new ShamirShare());
+            }
           }}
         />
       </div>
@@ -123,10 +125,9 @@
         <div class="flex-grow">
           {#if share}
             <ShamirShareInput
+              {share}
               disabled={false}
               showCopyButton={false}
-              shareIndex={parseInt(share[0].toString(10))}
-              shareEntropy={shareValueToEntropyHex(share[1])}
               onChange={(share) => handleShareChange(index, share)}
             />
           {/if}
@@ -155,18 +156,15 @@
     >
       <div class="flex flex-col gap-2">
         <div class="flex">
-          <div class="w-5/6">
-            <span class="ml-2 font-mono break-all"
-              >{recoveredWallet.mnemonic}</span
-            >
-          </div>
-          <div class="w-1/6">
-            {#if recoveredWallet.entropy === targetEntropy}
-              (matches generated shares)
-            {:else}
-              DOES NOT MATCH GENERATED SHARES
-            {/if}
-          </div>
+          <WalletInput
+            entropy={recoveredWallet.entropy}
+            label={`RECOVERED WALLET ${
+              recoveredWallet.entropy === targetEntropy
+                ? "MATCHES"
+                : "DOES NOT MATCH "
+            } GENERATED SHARES TAB CONTENT`}
+            disabled
+          />
         </div>
       </div>
     </div>

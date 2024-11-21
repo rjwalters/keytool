@@ -16,10 +16,69 @@ enum EntropyBitLength {
 }
 
 /**
- * Type representing a point in the finite field for Shamir's Secret Sharing
- * [x coordinate, y coordinate]
+ * Converts a BigInt value to a properly formatted entropy hex string
+ * Automatically pads to either 16 or 32 bytes based on value size
+ * @param value BigInt to convert
+ * @returns Hex string starting with "0x" padded to appropriate length
  */
-type ShamirShare = [bigint, bigint];
+function toEntropyHex(value: bigint): string {
+  if (value < 0n) {
+    throw new Error("Entropy value must be positive");
+  }
+  const bitLength = value.toString(2).length;
+  const targetLength = bitLength <= 128 ? 32 : 64;
+  const hexString = value.toString(16);
+  return `0x${hexString.padStart(targetLength, "0")}`;
+}
+
+/**
+ * Class representing a point in the finite field for Shamir's Secret Sharing
+ */
+class ShamirShare {
+  constructor(
+    private readonly _index: number = 0,
+    public readonly value: bigint = BigInt("0x0"),
+    public readonly isIndexed: boolean = false,
+  ) {}
+
+  /**
+   * Factory method to create a ShamirShare with optional parameters
+   * @param shareIndex - Optional index value
+   * @param shareEntropy - Optional entropy value as string
+   * @param isIndexed - Optional boolean flag
+   * @returns A new ShamirShare instance
+   */
+  static create(
+    shareIndex?: number,
+    shareEntropy?: string,
+    isIndexed?: boolean,
+  ): ShamirShare {
+    return new ShamirShare(
+      shareIndex ?? 0,
+      BigInt(shareEntropy || "0x0"),
+      isIndexed ?? false,
+    );
+  }
+
+  get index(): number {
+    if (this.isIndexed) {
+      return Number(this.value & 0xffn);
+    }
+    return this._index;
+  }
+
+  get entropyHex(): string {
+    return toEntropyHex(this.value);
+  }
+
+  /**
+   * Returns a string representation of the share
+   * Format: "Share(index: X, value: 0x..., indexed: true/false)"
+   */
+  toString(): string {
+    return `Share(index: ${this.index}, value: ${this.entropyHex}, indexed: ${this.isIndexed})`;
+  }
+}
 
 /**
  * Prime field modulus used for Shamir's Secret Sharing
@@ -79,18 +138,23 @@ function validateShares(shares: ShamirShare[]): void {
 
   // Validate individual shares
   shares.forEach((share, i) => {
-    if (!Array.isArray(share) || share.length !== 2) {
-      throw new Error(`Invalid share at index ${i}: wrong format`);
-    }
-    if (typeof share[0] !== "bigint" || typeof share[1] !== "bigint") {
+    if (!(share instanceof ShamirShare)) {
       throw new Error(
-        `Invalid share at index ${i}: coordinates must be bigints`,
+        `Invalid share at index ${i}: not a ShamirShare instance`,
       );
+    }
+
+    if (typeof share.value !== "bigint") {
+      throw new Error(`Invalid share at index ${i}: value must be bigint`);
+    }
+
+    if (typeof share.index !== "number") {
+      throw new Error(`Invalid share at index ${i}: index must be number`);
     }
   });
 
   // Check for unique x coordinates
-  const xCoords = new Set(shares.map((share) => share[0].toString()));
+  const xCoords = new Set(shares.map((share) => share.index));
   if (xCoords.size !== shares.length) {
     throw new Error("points must be distinct");
   }
@@ -145,22 +209,6 @@ function createShares(
 }
 
 /**
- * Converts a BigInt value to a properly formatted entropy hex string
- * Automatically pads to either 16 or 32 bytes based on value size
- * @param value BigInt to convert
- * @returns Hex string starting with "0x" padded to appropriate length
- */
-function shareValueToEntropyHex(value: bigint): string {
-  if (value < 0n) {
-    throw new Error("Entropy value must be positive");
-  }
-  const bitLength = value.toString(2).length;
-  const targetLength = bitLength <= 128 ? 32 : 64;
-  const hexString = value.toString(16);
-  return `0x${hexString.padStart(targetLength, "0")}`;
-}
-
-/**
  * Recovers a wallet from a set of Shamir secret shares
  * Uses Lagrange interpolation to reconstruct the secret
  * @param shares Array of shares, length must be >= minimum required
@@ -177,18 +225,18 @@ function recoverWalletFromShares(
     throw new Error(`Need at least ${requiredShares} shares for recovery`);
   }
 
-  const xs = shares.map((share) => share[0]);
-  const ys = shares.map((share) => share[1]);
+  const xs = shares.map((share) => BigInt(share.index));
+  const ys = shares.map((share) => share.value);
 
   // Check if all shares are 128-bit by examining their y-values
   const is128Bit = shares.every((share) => {
-    const yHex = share[1].toString(16);
+    const yHex = share.value.toString(16);
     return yHex.length <= 32;
   });
   const prime = is128Bit ? PRIME_128 : PRIME_256;
 
   const recoveredSecret = lagrangeInterpolate(0n, xs, ys, prime);
-  return walletFromEntropy(shareValueToEntropyHex(recoveredSecret));
+  return walletFromEntropy(toEntropyHex(recoveredSecret));
 }
 
 /**
@@ -293,7 +341,7 @@ function makeRandomShares(
         break;
       }
 
-      points.push([x, y]);
+      points.push(new ShamirShare(Number(x), y, false));
     }
     if (allPointsValid) {
       return points;
@@ -364,7 +412,7 @@ function lagrangeInterpolate(
  * @param wallet Source wallet to share
  * @param minimum Number of shares required for reconstruction
  * @param shares Total number of shares to generate
- * @returns Array of [x,y] coordinate pairs where y high bits encode position
+ * @returns Array of [x,y] coordinate pairs where y & 0xff encodes position
  */
 function createIndexedShares(
   wallet: Wallet,
@@ -386,14 +434,6 @@ function createIndexedShares(
   const secret = ethers.toBigInt("0x" + entropyHex);
 
   return makeIndexedShares(secret, minimum, shares, shareBitLength);
-}
-
-function recoverShareIndex(share: ShamirShare) {
-  return share[1] & 0xffn;
-}
-
-function isIndexed(share: ShamirShare): boolean {
-  return share[0] === recoverShareIndex(share);
 }
 
 /**
@@ -468,9 +508,9 @@ function makeIndexedShares(
         continue;
       }
 
-      // Check if y naturally encodes x in its high bits
-      if (isIndexed([x, y])) {
-        points.push([x, y]);
+      // Check if y naturally encodes x
+      if (x === (y & 0xffn)) {
+        points.push(new ShamirShare(Number(x), y, true));
         if (points.length === shares) {
           return points;
         }
@@ -489,48 +529,14 @@ function makeIndexedShares(
   );
 }
 
-/**
- * Recovers a wallet from IndexedShares by extracting indices from y-value high bits
- * No x-coordinates required since position information is encoded in shares
- * @param shares Array of shares with position encoded in y-value high bits
- * @returns Reconstructed wallet
- */
-function recoverWalletFromIndexedShares(
-  requiredShares: number,
-  shares: ShamirShare[],
-): Wallet {
-  if (!Array.isArray(shares)) {
-    throw new Error("Invalid shares: must be an array");
-  }
-
-  if (shares.length === 0) {
-    throw new Error("Invalid shares: empty array");
-  }
-
-  const recoveredShares = shares.map((share) => {
-    return [recoverShareIndex(share), share[1]] as ShamirShare;
-  });
-
-  // Verify uniqueness of indices
-  const indices = new Set(recoveredShares.map((s) => s[0].toString()));
-  if (indices.size !== shares.length) {
-    throw new Error("Duplicate share indices detected");
-  }
-
-  return recoverWalletFromShares(requiredShares, recoveredShares);
-}
-
 export {
   createIndexedShares,
   createShares,
   generateWallet,
-  isIndexed,
-  recoverShareIndex,
-  recoverWalletFromIndexedShares,
   recoverWalletFromShares,
-  shareValueToEntropyHex,
+  ShamirShare,
+  toEntropyHex,
   walletFromEntropy,
   walletFromMnemonic,
-  type ShamirShare,
   type Wallet,
 };

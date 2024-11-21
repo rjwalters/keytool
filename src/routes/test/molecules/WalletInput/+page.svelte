@@ -121,7 +121,7 @@
       {hiddenModes}
       {showGenerationButtons}
       {showCopyButton}
-      onchange={handleChange}
+      onChange={handleChange}
     />
   {/snippet}
 </ComponentTestFixture>

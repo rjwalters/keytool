@@ -18,7 +18,7 @@
   import { isAriaIntent } from "$utils/aria";
 
   export interface WalletInputProps {
-    entropy: string; // 16 or 32 bytes
+    entropy?: string; // 16 or 32 bytes
     label?: string;
     disabled?: boolean;
     required?: boolean;
@@ -26,7 +26,7 @@
     hiddenModes?: WalletInputDisplayMode[];
     showGenerationButtons?: boolean;
     showCopyButton?: boolean;
-    onchange?: (wallet: Wallet) => void;
+    onChange?: (wallet: Wallet) => void;
   }
 
   let {
@@ -38,7 +38,7 @@
     hiddenModes = [],
     showGenerationButtons = false,
     showCopyButton = true,
-    onchange = (_wallet) => {},
+    onChange = (_wallet) => {},
   }: WalletInputProps = $props();
 
   let activeMode = $state(displayMode);
@@ -98,7 +98,7 @@
     try {
       const newWallet = walletFromMnemonic(mnemonic);
       entropy = newWallet.entropy;
-      onchange(newWallet);
+      onChange(newWallet);
       errorMessage = "";
     } catch (err) {
       errorMessage = "Invalid mnemonic";
@@ -109,7 +109,7 @@
     try {
       const newWallet = walletFromEntropy(`0x${hexValue}`);
       entropy = newWallet.entropy;
-      onchange(newWallet);
+      onChange(newWallet);
       errorMessage = "";
     } catch (err) {
       errorMessage = "Invalid hex";
@@ -158,7 +158,7 @@
   function generateSample(bits: number) {
     const wallet = generateWallet(bits);
     entropy = wallet.entropy;
-    onchange(wallet);
+    onChange(wallet);
   }
 </script>
 

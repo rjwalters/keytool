@@ -1,12 +1,10 @@
 <script lang="ts">
   import { Badge, Input } from "$components/atoms";
   import { WalletInput } from "$components/molecules";
-  import { type ShamirShare, recoverShareIndex } from "$utils/wallet";
+  import { ShamirShare } from "$utils/wallet";
 
   export interface ShareInputProps {
-    shareIndex: number | undefined;
-    shareEntropy: string;
-    isIndexed?: boolean;
+    share: ShamirShare | undefined;
     disabled?: boolean;
     required?: boolean;
     showCopyButton?: boolean;
@@ -15,9 +13,7 @@
   }
 
   let {
-    shareIndex = $bindable(undefined),
-    shareEntropy = $bindable(""),
-    isIndexed = $bindable(false),
+    share = $bindable(undefined),
     disabled = false,
     required = false,
     showCopyButton = true,
@@ -25,65 +21,40 @@
     label = "",
   }: ShareInputProps = $props();
 
-  let share: ShamirShare = $derived([
-    BigInt(shareIndex || 0),
-    BigInt(shareEntropy),
-  ]);
+  let shareIndex = $state(share?.index ?? undefined);
+  let shareEntropy = $state(share?.entropyHex ?? undefined);
+  let isIndexed = $state(share?.isIndexed ?? false);
+
+  // Update internal state when a bound share prop is changed
+  $effect(() => {
+    if (share) {
+      console.log(`parent set share to ${share}`);
+      shareIndex = share.index;
+      shareEntropy = share.entropyHex;
+      isIndexed = share.isIndexed;
+      errorMessage = "";
+    } else {
+      console.log(`parent set share to undefined`);
+      shareIndex = undefined;
+      shareEntropy = undefined;
+      isIndexed = false;
+      errorMessage = "";
+    }
+  });
 
   let errorMessage = $state("");
 
-  // Validate the shareEntropy (similar to validateEntropyValue in wallet.ts)
-  function validateShareEntropy(hexValue: string): boolean {
-    try {
-      if (!hexValue.startsWith("0x")) {
-        throw new Error("Invalid share value: must start with 0x");
-      }
-      if (!/^0x[0-9a-fA-F]+$/.test(hexValue)) {
-        throw new Error("Invalid share value: invalid hex characters");
-      }
-      const byteLength = (hexValue.length - 2) / 2;
-      if (byteLength !== 16 && byteLength !== 32) {
-        throw new Error("Invalid share value: must be 16 or 32 bytes");
-      }
-      return true;
-    } catch (err) {
-      errorMessage = err instanceof Error ? err.message : "Invalid share value";
-      return false;
-    }
-  }
-
-  // Update the share when either coordinate changes
-  $effect(() => {
-    try {
+  function handleIndexChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const newIndex = parseInt(target.value);
+    if (newIndex < 1) {
+      errorMessage = "Share index must be >=1";
+    } else {
       errorMessage = "";
-      if (isIndexed) {
-        shareIndex = Number(recoverShareIndex(share));
-      }
-
-      if (shareIndex !== undefined && shareEntropy) {
-        // Validate the shareIndex is a positive integer
-        if (shareIndex < 1) {
-          errorMessage = "Share index must be >=1";
-          onChange(undefined);
-          return;
-        }
-
-        // Validate the share entropy
-        if (!validateShareEntropy(shareEntropy)) {
-          onChange(undefined);
-          return;
-        }
-        console.log(share);
-        onChange(share);
-      } else {
-        onChange(undefined);
-      }
-    } catch (err) {
-      console.error("Error updating share:", err);
-      errorMessage = err instanceof Error ? err.message : "Invalid share";
-      onChange(undefined);
+      share = ShamirShare.create(newIndex, share?.entropyHex, false);
     }
-  });
+    onChange(share);
+  }
 </script>
 
 <div class="flex flex-col gap-2 border border-black-10">
@@ -91,25 +62,24 @@
     <!-- Index -->
     <div class="flex flex-col justify-around">
       <div class="flex flex-col items-center gap-2 w-20">
-        {#if isIndexed}
-          <Badge
-            label="Indexed"
-            color="blue"
-            {disabled}
-            onClick={(_e) => (isIndexed = false)}
-          />
-        {:else}
-          <Badge
-            label="Standard"
-            color="black"
-            {disabled}
-            onClick={(_e) => (isIndexed = true)}
-          />
-        {/if}
+        <Badge
+          label={isIndexed ? "Indexed" : "Standard"}
+          color={isIndexed ? "blue" : "black"}
+          {disabled}
+          onClick={(_e) => {
+            share = ShamirShare.create(
+              share?.index,
+              share?.entropyHex,
+              !isIndexed
+            );
+            onChange(share);
+          }}
+        />
         <Input
-          bind:value={shareIndex}
+          value={shareIndex}
           disabled={isIndexed || disabled}
           variant="number"
+          onchange={handleIndexChange}
         />
       </div>
     </div>
@@ -117,12 +87,16 @@
     <!-- Value Input (reusing WalletInput for hex handling) -->
     <div class="flex-1">
       <WalletInput
-        bind:entropy={shareEntropy}
+        entropy={shareEntropy}
         {label}
         {required}
         {disabled}
         {showCopyButton}
         hiddenModes={["addresses"]}
+        onChange={(wallet) => {
+          share = ShamirShare.create(share?.index, wallet.entropy, !isIndexed);
+          onChange(share);
+        }}
       />
     </div>
   </div>

@@ -1,6 +1,6 @@
 <script module lang="ts">
   export interface SharesReportShare {
-    index: string;
+    index: number;
     value: string; // a hex string
     isIndexed: boolean;
   }
@@ -14,6 +14,8 @@
 </script>
 
 <script lang="ts">
+  import { fade, scale } from "svelte/transition";
+
   import { Button } from "$components/atoms";
   import {
     ShamirSchemeSelector,
@@ -23,8 +25,7 @@
   import {
     createIndexedShares,
     createShares,
-    isIndexed,
-    shareValueToEntropyHex,
+    walletFromEntropy,
     type ShamirShare,
     type Wallet,
   } from "$utils/wallet";
@@ -46,16 +47,12 @@
   let totalShares = $state(5);
 
   let generatedShares = $state<ShamirShare[]>([]);
+
+  let showGeneratingModal = $state(false);
   let error = $state("");
 
   // Generate shares when wallet or configuration changes
-  function generateShares(
-    makeShares: (
-      wallet: Wallet,
-      minimum: number,
-      shares: number
-    ) => ShamirShare[] = createShares
-  ) {
+  async function generateShares(generateIndexedShares = false) {
     if (!wallet) {
       console.error("no source wallet");
       generatedShares = [];
@@ -70,21 +67,45 @@
         return;
       }
 
-      generatedShares = makeShares(wallet, requiredShares, totalShares);
+      const makeShares: (
+        wallet: Wallet,
+        minimum: number,
+        shares: number
+      ) => ShamirShare[] = generateIndexedShares
+        ? createIndexedShares
+        : createShares;
+
+      if (generateIndexedShares && totalShares > 6) {
+        showGeneratingModal = true;
+      }
+
+      // Wrap the share generation in a Promise to ensure it's async
+      generatedShares = await new Promise<ShamirShare[]>((resolve) => {
+        setTimeout(() => {
+          if (wallet) {
+            const shares = makeShares(wallet, requiredShares, totalShares);
+            resolve(shares);
+          } else {
+            resolve([]);
+          }
+        }, 0);
+      });
 
       const reportData: SharesReport = {
         entropy,
         minimum: requiredShares,
         total: totalShares,
         shares: generatedShares.map((share) => ({
-          index: share[0].toString(),
-          value: shareValueToEntropyHex(share[1]),
-          isIndexed: isIndexed(share),
+          index: share.index,
+          value: share.entropyHex,
+          isIndexed: share.isIndexed,
+          mnemonic: walletFromEntropy(share.entropyHex).mnemonic,
         })),
       };
 
       sharesReport = JSON.stringify(reportData, null, 2);
       error = "";
+      showGeneratingModal = false;
     } catch (err) {
       console.error("Error generating shares:", err);
       error = err instanceof Error ? err.message : "Failed to generate shares";
@@ -96,13 +117,19 @@
   function handleWalletChange(newWallet: Wallet) {
     wallet = newWallet;
     entropy = wallet.entropy;
+    console.log("regenerating shares after wallet change");
     generateShares();
   }
 
   function handleSchemeChange(required: number, total: number) {
+    const shouldRegenerate =
+      required !== requiredShares || total > generatedShares.length;
     requiredShares = required;
     totalShares = total;
-    generateShares();
+    if (shouldRegenerate) {
+      console.log("regenerating shares after scheme change");
+      generateShares();
+    }
   }
 
   // Simplify copyAllToClipboard() to use the derived state
@@ -112,6 +139,26 @@
   }
 </script>
 
+<!-- modal displayed when share generation is expected to take a long time-->
+<!-- modal displayed when share generation is expected to take a long time-->
+{#if showGeneratingModal}
+  <div role="dialog" class="modal-external" transition:fade={{ duration: 200 }}>
+    <div
+      class="modal-popup"
+      in:scale={{ duration: 350 }}
+      out:fade={{ duration: 250 }}
+    >
+      <div class="z-[102] flex flex-col items-center justify-center gap-4 p-8">
+        <div class="loading-spinner"></div>
+        <div class="text-lg font-medium">Generating {totalShares} Shares</div>
+        <div class="text-black-60">
+          {requiredShares} required for recovery
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <div class="flex flex-col gap-6 p-4">
   <!-- Source Wallet Input -->
   <div class="w-full">
@@ -119,7 +166,7 @@
       {label}
       {entropy}
       showGenerationButtons
-      onchange={handleWalletChange}
+      onChange={handleWalletChange}
     />
   </div>
 
@@ -140,7 +187,10 @@
             <Button
               variant="secondary"
               size="md"
-              onclick={() => generateShares()}
+              onclick={() => {
+                console.log("generating standard shares");
+                generateShares();
+              }}
             >
               Standard Shares
             </Button>
@@ -149,19 +199,18 @@
             <Button
               variant="secondary"
               size="md"
-              onclick={() => generateShares(createIndexedShares)}
+              onclick={() => {
+                console.log("generating indexed shares");
+                generateShares(true);
+              }}
             >
               Indexed Shares
             </Button>
           </div>
         </div>
         <div class="flex flex-col gap-4">
-          {#each generatedShares as share, i}
-            <ShamirShareInput
-              disabled={true}
-              shareIndex={parseInt(share[0].toString(10))}
-              shareEntropy={shareValueToEntropyHex(share[1])}
-            />
+          {#each generatedShares.slice(0, totalShares) as share, i}
+            <ShamirShareInput disabled={true} {share} />
           {/each}
         </div>
 
@@ -202,3 +251,32 @@
     {/if}
   {/if}
 </div>
+
+<style lang="postcss">
+  .modal-external {
+    @apply fixed left-0 top-0 z-[100] flex h-[100svh] w-screen overflow-y-scroll;
+    @apply items-start justify-center bg-black-100/40 py-[2svh] backdrop-blur-2xl md:items-center md:p-5 md:py-0;
+  }
+  .modal-popup {
+    @apply z-[101] flex flex-col rounded-xl bg-white-100 drop-shadow-lg md:my-10 md:min-w-[440px] md:rounded-xl;
+    @apply h-fit w-full overflow-visible md:w-fit md:max-w-[900px];
+    scrollbar-width: none;
+    max-height: calc(100vh - 10px);
+  }
+  .modal-popup::-webkit-scrollbar {
+    display: none;
+  }
+  .loading-spinner {
+    @apply h-12 w-12 rounded-full border-4 border-black-20;
+    @apply border-t-black-60;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>
